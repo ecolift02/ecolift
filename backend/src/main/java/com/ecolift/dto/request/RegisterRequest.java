@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RegisterRequest {
-    @NotBlank(message ="Name is required")
+    @NotBlank(message = "Name is required")
     private String name;
 
     @NotBlank(message = "Email is required")
@@ -23,4 +23,8 @@ public class RegisterRequest {
     @NotBlank(message = "Password is required")
     @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
+
+    private String phone; // Added to capture phone from React
+
+    private String role;  // Added to capture role ("PASSENGER" or "DRIVER") from React
 }
