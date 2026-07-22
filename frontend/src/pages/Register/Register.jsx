@@ -1,15 +1,20 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Register = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "", // Updated from fullName to match backend entity field 'name'
     email: "",
     phone: "",
-    role: "passenger",
+    role: "PASSENGER",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,25 +25,62 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8083/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || "Registration failed. Please try again.");
+      }
+
+      const data = await response.json();
+
+      // If backend automatically returns a token upon registration, save it
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data));
+      }
+
+      // Redirect to home page after successful registration
+      navigate("/");
+    } catch (err) {
+      setError(err.message || "Something went wrong during registration.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <main className="flex min-h-screen w-full">
-      {/* Left Section */}
+    <main className="flex min-h-screen w-full relative">
+      {/* Go to Home Button - Fixed to Top Right Corner */}
+      <div className="absolute top-6 right-6 z-50">
+        <Link
+          to="/"
+          className="px-4 py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center gap-2"
+        >
+          ← Go to Home
+        </Link>
+      </div>
 
-      <section className="flex w-full lg:w-1/2 relative bg-green-900 overflow-hidden items-center justify-center p-16">
+      {/* Left Section */}
+      <section className="hidden lg:flex w-1/2 relative bg-green-900 overflow-hidden items-center justify-center p-16">
         <div className="absolute inset-0 z-0 opacity-20">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-green-400 blur-3xl animate-pulse"></div>
-
           <div className="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] rounded-full bg-green-600 blur-3xl"></div>
         </div>
 
         <div className="relative z-10 max-w-xl text-white">
-          {/* Logo */}
-
           <div className="mb-12 flex items-center gap-3">
             <div className="bg-white p-2 rounded-xl">
               <span className="material-symbols-outlined text-green-900 text-3xl">
@@ -81,129 +123,86 @@ const Register = () => {
       </section>
 
       {/* Right Section */}
-
       <section className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8 overflow-y-auto">
-        <div className="w-full max-w-md space-y-8">
-          {/* Mobile Logo */}
-
-          <div className="lg:hidden flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">
+        <div className="w-full max-w-md space-y-6 pt-12 lg:pt-0">
+          <div className="lg:hidden flex items-center gap-2 mb-4">
+            <span className="material-symbols-outlined text-green-700 text-2xl">
               eco
             </span>
-
-            <span className="text-2xl font-bold text-primary">EcoLift</span>
+            <span className="text-2xl font-bold text-green-700">EcoLift</span>
           </div>
-
-          {/* Heading */}
 
           <div>
             <h2 className="text-4xl font-bold mb-2">Create your account</h2>
-
             <p className="text-gray-600">
               Start your journey toward zero-emission commuting today.
             </p>
           </div>
 
-          {/* Social Buttons */}
-
-          <div className="grid grid-cols-2 gap-6">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-3 py-3 border rounded-xl hover:bg-gray-100"
-            >
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/3840px-Google_%22G%22_logo.svg.png"
-                alt="Google"
-                className="w-5 h-5"
-              />
-              Google
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center justify-center gap-3 py-3 border rounded-xl hover:bg-gray-100"
-            >
-              <img
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9edUNTUwO92bMOmOnWWO8zY2hwJ-tAIc2_LvkzXPtxA&s=10"
-                alt="Apple"
-                className="w-5 h-5"
-              />
-              Apple
-            </button>
-          </div>
-
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t"></div>
-
-            <span className="mx-4 text-gray-500 text-sm">
-              Or register with email
-            </span>
-
-            <div className="flex-grow border-t"></div>
-          </div>
+          {/* Error Message Display */}
+          {error && (
+            <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
-
             <div>
-              <label className="block mb-1">Full Name</label>
-
+              <label className="block mb-1 font-medium">Full Name</label>
               <input
                 type="text"
-                name="fullName"
-                value={formData.fullName}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 placeholder="your name"
+                required
                 className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
               />
             </div>
 
             {/* Email */}
-
             <div>
-              <label className="block mb-1">Email Address</label>
-
+              <label className="block mb-1 font-medium">Email Address</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="abc@example.com"
+                required
                 className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
               />
             </div>
 
             {/* Phone */}
-
             <div>
-              <label className="block mb-1">Phone Number</label>
-
+              <label className="block mb-1 font-medium">Phone Number</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
                   +91
                 </span>
-
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="98765 43210"
+                  placeholder="9876543210"
+                  required
                   className="w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
                 />
               </div>
             </div>
+
             {/* Role Selection */}
-
             <div>
-              <label className="block mb-2">Join as</label>
-
+              <label className="block mb-2 font-medium">Join as</label>
               <div className="grid grid-cols-2 gap-4">
                 <label
                   className={`border rounded-2xl p-4 flex flex-col items-center cursor-pointer transition ${
-                    formData.role === "passenger"
+                    formData.role === "passenger" ||
+                    formData.role === "PASSENGER"
                       ? "border-green-600 bg-green-50"
                       : "border-gray-300"
                   }`}
@@ -211,22 +210,23 @@ const Register = () => {
                   <input
                     type="radio"
                     name="role"
-                    value="passenger"
-                    checked={formData.role === "passenger"}
+                    value="PASSENGER"
+                    checked={
+                      formData.role === "passenger" ||
+                      formData.role === "PASSENGER"
+                    }
                     onChange={handleChange}
                     className="hidden"
                   />
-
                   <span className="material-symbols-outlined text-green-700 mb-2">
                     person
                   </span>
-
                   <span className="font-medium">Passenger</span>
                 </label>
 
                 <label
                   className={`border rounded-2xl p-4 flex flex-col items-center cursor-pointer transition ${
-                    formData.role === "driver"
+                    formData.role === "driver" || formData.role === "DRIVER"
                       ? "border-green-600 bg-green-50"
                       : "border-gray-300"
                   }`}
@@ -234,26 +234,24 @@ const Register = () => {
                   <input
                     type="radio"
                     name="role"
-                    value="driver"
-                    checked={formData.role === "driver"}
+                    value="DRIVER"
+                    checked={
+                      formData.role === "driver" || formData.role === "DRIVER"
+                    }
                     onChange={handleChange}
                     className="hidden"
                   />
-
                   <span className="material-symbols-outlined text-green-700 mb-2">
                     directions_car
                   </span>
-
                   <span className="font-medium">Driver</span>
                 </label>
               </div>
             </div>
 
             {/* Password */}
-
             <div>
-              <label className="block mb-1">Password</label>
-
+              <label className="block mb-1 font-medium">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -261,53 +259,51 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
+                  required
                   className="w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 mt-1"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
                 >
                   <span className="material-symbols-outlined">
                     {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               </div>
-
               <p className="text-sm text-gray-500 mt-1">
                 At least 8 characters with a symbol.
               </p>
             </div>
 
             {/* Create Account Button */}
-
             <button
               type="submit"
-              className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition"
+              disabled={loading}
+              className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
-              Create Account
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
           {/* Footer */}
-
           <div className="pt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{" "}
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="text-green-700 font-semibold hover:underline"
               >
                 Log In
-              </a>
+              </Link>
             </p>
           </div>
 
           {/* Terms */}
-
           <p className="text-center text-sm text-gray-500 px-6">
             By clicking <strong>Create Account</strong>, you agree to EcoLift's{" "}
+            <br />
             <a href="#" className="underline">
               Terms of Service
             </a>{" "}
