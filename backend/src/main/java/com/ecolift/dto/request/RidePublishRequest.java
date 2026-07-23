@@ -14,11 +14,11 @@ public class RidePublishRequest {
     @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 
-    @NotNull(message = "Source location ID is required")
-    private Long sourceLocationId;
+    @NotNull(message = "Departure location ID is required")
+    private Long departureLocationId;
 
-    @NotNull(message = "Destination location ID is required")
-    private Long destinationLocationId;
+    @NotNull(message = "Arrival location ID is required")
+    private Long arrivalLocationId;
 
     @NotNull(message = "Departure time is required")
     @Future(message = "Departure time must be in the future")
