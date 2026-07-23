@@ -14,4 +14,6 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     
     // Updated to match the 'isVerified' and 'isDeleted' field names exactly
     List<Vehicle> findByDriverIdAndIsVerifiedTrueAndIsDeletedFalse(Long driverId);
+    
+    boolean existsByLicensePlate(String licensePlate);
 }

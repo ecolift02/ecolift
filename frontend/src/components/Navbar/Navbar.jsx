@@ -1,28 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Tracks URL changes to re-check token
+  const location = useLocation();
 
+  // States
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
+  const [userMode, setUserMode] = useState("passenger"); // Tracks active mode
 
-  // Whenever the route changes or logout happens, re-check the token
+  const dropdownRef = useRef(null);
+
+  // Re-check token on route changes
   useEffect(() => {
     setToken(localStorage.getItem("token"));
   }, [location]);
 
+  // Handle clicking outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        setIsModeMenuOpen(false); // Close sub-menu as well
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setToken(null); // Instantly updates React state
-    navigate("/"); // Redirects to home
+    setToken(null);
+    setIsDropdownOpen(false);
+    setIsModeMenuOpen(false);
+    navigate("/");
+  };
+
+  const handleModeChange = (mode) => {
+    setUserMode(mode);
+    setIsModeMenuOpen(false); // Auto-close sub-dropdown on selection
+
+    // Optional: You could also close the main dropdown here if you prefer
+    // setIsDropdownOpen(false);
   };
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
-        {/* Logo */}
+        {/* Logo and Desktop Menu */}
         <div className="flex items-center gap-12">
           <Link
             to="/"
@@ -31,7 +61,6 @@ const Navbar = () => {
             EcoLift
           </Link>
 
-          {/* Desktop Menu */}
           <div className="hidden md:flex gap-8">
             <a
               href="#how-it-works"
@@ -72,20 +101,125 @@ const Navbar = () => {
               </Link>
             </>
           ) : (
-            <>
-              <Link
-                to="/profile"
-                className="text-gray-600 hover:text-green-700 font-medium transition"
-              >
-                Profile
-              </Link>
+            <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+              {/* Eco Stats Pill */}
+              <div className="hidden sm:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full">
+                <span
+                  className="material-symbols-outlined text-green-700"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  eco
+                </span>
+                <span className="text-sm font-medium text-green-700">
+                  1,240 kg saved
+                </span>
+              </div>
+
+              {/* Profile Avatar Button */}
               <button
-                onClick={handleLogout}
-                className="px-6 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-500 hover:text-white transition shadow"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-10 h-10 rounded-full border-2 border-green-700 overflow-hidden focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition"
               >
-                Logout
+                <img
+                  className="w-full h-full object-cover"
+                  alt="User Profile Avatar"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTXEqeXb5oMyQbf1hR_m59FLXF81K1UzNc300uKHMGjM_4kHPRyedHC2m4sirqtGwkISVtDsxdYa6FnhQJ_3RY5OskpVuPlEKu6NRYsEGQjQUCILUNSbCIpi8XbIW2PqJ-_yc6nwknNGb0bDskAn4_z6sCdeCsOaRjL0zYCKJ-lgjobRKMy7Rx_xVuOq60y31HjSDwRGQR9YgsJamE6F31g2kO8CY1Zidr6cdK7inh_bkIDXD8W78fcW2GT2edMpT6Q4yGHfD4ubw"
+                />
               </button>
-            </>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute top-14 right-0 w-56 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 flex flex-col overflow-hidden">
+                  <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                    <p className="text-sm font-semibold text-gray-800">
+                      My Account
+                    </p>
+                  </div>
+
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-green-50 hover:text-green-700 transition flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      person
+                    </span>
+                    Profile
+                  </Link>
+
+                  {/* Mode Switcher (Sub-dropdown trigger) */}
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevents clicks from immediately closing everything
+                        setIsModeMenuOpen(!isModeMenuOpen);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-green-50 transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">
+                          swap_horiz
+                        </span>
+                        <span>
+                          Mode:{" "}
+                          <span className="font-semibold capitalize text-green-700">
+                            {userMode}
+                          </span>
+                        </span>
+                      </div>
+                      <span className="material-symbols-outlined text-[18px]">
+                        {isModeMenuOpen ? "expand_less" : "expand_more"}
+                      </span>
+                    </button>
+
+                    {/* Sub-dropdown Menu */}
+                    {isModeMenuOpen && (
+                      <div className="bg-gray-50 flex flex-col py-1 border-y border-gray-100">
+                        <button
+                          onClick={() => handleModeChange("passenger")}
+                          className={`px-10 py-2 text-sm text-left transition flex items-center gap-2 ${
+                            userMode === "passenger"
+                              ? "text-green-700 font-semibold"
+                              : "text-gray-500 hover:text-green-700"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            hail
+                          </span>
+                          Passenger
+                        </button>
+
+                        <button
+                          onClick={() => handleModeChange("driver")}
+                          className={`px-10 py-2 text-sm text-left transition flex items-center gap-2 ${
+                            userMode === "driver"
+                              ? "text-green-700 font-semibold"
+                              : "text-gray-500 hover:text-green-700"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            directions_car
+                          </span>
+                          Driver
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        logout
+                      </span>
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

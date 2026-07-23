@@ -36,7 +36,7 @@ public class AuthService {
         }
 
         // 2. Fetch default role (USER)
-        Role userRole = roleRepository.findByName(request.getRole())
+        Role userRole = roleRepository.findByName("User")
                 .orElseThrow(() -> new RuntimeException("Error: Default Role not found."));
 
         // 3. Build and save new User

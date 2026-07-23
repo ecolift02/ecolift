@@ -4,7 +4,8 @@ import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/Routes/ProtectedRoute";
-
+import RegisterVehicle from "./pages/Register/RegisterVehicle";
+import UserProfile from "./pages/Profile/UserProfile";
 function App() {
   return (
     <AuthProvider>
@@ -16,11 +17,13 @@ function App() {
           <Route path="/register" element={<Register />} />
           {/* <Route path="/search" element={<RideSearch />} /> */}
           {/* <Route path="/unauthorized" element={<Unauthorized />} /> */}
+          {/* New Vehicle Registration Route */}
+          <Route path="/register-vehicle" element={<RegisterVehicle />} />
 
           {/* Protected Routes: Any authenticated user */}
-          {/* <Route element={<ProtectedRoute />}>
-            <Route path="/profile" element={<div>User Profile Page</div>} />
-          </Route> */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<UserProfile />} />
+          </Route>
 
           {/* Protected Routes: DRIVERS only */}
           {/* <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
