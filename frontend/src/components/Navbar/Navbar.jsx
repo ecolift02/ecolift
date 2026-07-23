@@ -1,52 +1,39 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext"; // Pulling your global auth state
 
 const Navbar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // States
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  // Using context instead of manual localStorage checks
+  const { isAuthenticated, logout, user } = useAuth();
+  
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
-  const [userMode, setUserMode] = useState("passenger"); // Tracks active mode
-
   const dropdownRef = useRef(null);
 
-  // Re-check token on route changes
-  useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, [location]);
-
-  // Handle clicking outside the dropdown to close it
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
-        setIsModeMenuOpen(false); // Close sub-menu as well
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setToken(null);
     setIsDropdownOpen(false);
-    setIsModeMenuOpen(false);
-    navigate("/");
+    logout(); // Let AuthContext handle the cleanup and redirect
   };
 
-  const handleModeChange = (mode) => {
-    setUserMode(mode);
-    setIsModeMenuOpen(false); // Auto-close sub-dropdown on selection
-
-    // Optional: You could also close the main dropdown here if you prefer
-    // setIsDropdownOpen(false);
+  // Helper to generate a clean avatar based on email/name
+  const getDisplayName = (userData) => {
+    if (userData?.firstName) return userData.firstName;
+    if (userData?.name) return userData.name;
+    if (userData?.email) {
+      const username = userData.email.split("@")[0];
+      return username.charAt(0).toUpperCase() + username.slice(1);
+    }
+    return "User";
   };
 
   return (
@@ -54,49 +41,31 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
         {/* Logo and Desktop Menu */}
         <div className="flex items-center gap-12">
-          <Link
-            to="/"
-            className="text-3xl font-bold text-green-700 tracking-wide"
-          >
+          <Link to="/" className="text-3xl font-bold text-green-700 tracking-wide">
             EcoLift
           </Link>
 
           <div className="hidden md:flex gap-8">
-            <a
-              href="#how-it-works"
-              className="text-green-700 font-semibold border-b-2 border-green-700 pb-1"
-            >
+            <Link to="/" className="text-green-700 font-semibold border-b-2 border-green-700 pb-1">
               How it Works
-            </a>
-            <a
-              href="#support"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
+            </Link>
+            <Link to="/" className="text-gray-600 hover:text-green-700 transition">
               Support
-            </a>
-            <a
-              href="#blog"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
+            </Link>
+            <Link to="/" className="text-gray-600 hover:text-green-700 transition">
               Blog
-            </a>
+            </Link>
           </div>
         </div>
 
         {/* Right Buttons / Conditional Rendering */}
         <div className="flex items-center gap-4">
-          {!token ? (
+          {!isAuthenticated ? (
             <>
-              <Link
-                to="/login"
-                className="px-6 py-2 rounded-full text-green-700 hover:bg-green-50 transition"
-              >
+              <Link to="/login" className="px-6 py-2 rounded-full text-green-700 hover:bg-green-50 transition">
                 Login
               </Link>
-              <Link
-                to="/register"
-                className="px-6 py-2 rounded-full bg-green-700 text-white hover:bg-green-800 transition shadow"
-              >
+              <Link to="/register" className="px-6 py-2 rounded-full bg-green-700 text-white hover:bg-green-800 transition shadow">
                 Sign Up
               </Link>
             </>
@@ -104,10 +73,7 @@ const Navbar = () => {
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               {/* Eco Stats Pill */}
               <div className="hidden sm:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full">
-                <span
-                  className="material-symbols-outlined text-green-700"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
+                <span className="material-symbols-outlined text-green-700" style={{ fontVariationSettings: "'FILL' 1" }}>
                   eco
                 </span>
                 <span className="text-sm font-medium text-green-700">
@@ -115,19 +81,19 @@ const Navbar = () => {
                 </span>
               </div>
 
-              {/* Profile Avatar Button */}
+              {/* Dynamic Profile Avatar Button */}
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full border-2 border-green-700 overflow-hidden focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition"
               >
                 <img
                   className="w-full h-full object-cover"
-                  alt="User Profile Avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTXEqeXb5oMyQbf1hR_m59FLXF81K1UzNc300uKHMGjM_4kHPRyedHC2m4sirqtGwkISVtDsxdYa6FnhQJ_3RY5OskpVuPlEKu6NRYsEGQjQUCILUNSbCIpi8XbIW2PqJ-_yc6nwknNGb0bDskAn4_z6sCdeCsOaRjL0zYCKJ-lgjobRKMy7Rx_xVuOq60y31HjSDwRGQR9YgsJamE6F31g2kO8CY1Zidr6cdK7inh_bkIDXD8W78fcW2GT2edMpT6Q4yGHfD4ubw"
+                  alt="User Avatar"
+                  src={`https://ui-avatars.com/api/?name=${getDisplayName(user)}&background=15803d&color=fff`}
                 />
               </button>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown Menu (Cleaned up, no extra mode switches or roles) */}
               {isDropdownOpen && (
                 <div className="absolute top-14 right-0 w-56 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 flex flex-col overflow-hidden">
                   <div className="px-4 py-2 border-b border-gray-100 mb-1">
@@ -146,65 +112,6 @@ const Navbar = () => {
                     </span>
                     Profile
                   </Link>
-
-                  {/* Mode Switcher (Sub-dropdown trigger) */}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevents clicks from immediately closing everything
-                        setIsModeMenuOpen(!isModeMenuOpen);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-green-50 transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px]">
-                          swap_horiz
-                        </span>
-                        <span>
-                          Mode:{" "}
-                          <span className="font-semibold capitalize text-green-700">
-                            {userMode}
-                          </span>
-                        </span>
-                      </div>
-                      <span className="material-symbols-outlined text-[18px]">
-                        {isModeMenuOpen ? "expand_less" : "expand_more"}
-                      </span>
-                    </button>
-
-                    {/* Sub-dropdown Menu */}
-                    {isModeMenuOpen && (
-                      <div className="bg-gray-50 flex flex-col py-1 border-y border-gray-100">
-                        <button
-                          onClick={() => handleModeChange("passenger")}
-                          className={`px-10 py-2 text-sm text-left transition flex items-center gap-2 ${
-                            userMode === "passenger"
-                              ? "text-green-700 font-semibold"
-                              : "text-gray-500 hover:text-green-700"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            hail
-                          </span>
-                          Passenger
-                        </button>
-
-                        <button
-                          onClick={() => handleModeChange("driver")}
-                          className={`px-10 py-2 text-sm text-left transition flex items-center gap-2 ${
-                            userMode === "driver"
-                              ? "text-green-700 font-semibold"
-                              : "text-gray-500 hover:text-green-700"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            directions_car
-                          </span>
-                          Driver
-                        </button>
-                      </div>
-                    )}
-                  </div>
 
                   <div className="border-t border-gray-100 mt-1 pt-1">
                     <button

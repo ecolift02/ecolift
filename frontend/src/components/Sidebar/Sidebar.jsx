@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Box,
   List,
@@ -9,43 +10,20 @@ import {
   Toolbar,
 } from "@mui/material";
 
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import AddRoadIcon from "@mui/icons-material/AddRoad";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 
+import { useAuth } from "../../context/AuthContext"; // Import for logout
+
 const drawerWidth = 260;
 
-const menuItems = [
-  {
-    text: "Dashboard",
-    icon: <DashboardIcon />,
-    path: "/dashboard",
-    key: "dashboard",
-  },
-  {
-    text: "Find a Lift",
-    icon: <DirectionsCarIcon />,
-    path: "/find-lift",
-    key: "findLift",
-  },
-  {
-    text: "Offer a Ride",
-    icon: <AddRoadIcon />,
-    path: "/offer-ride",
-    key: "offerRide",
-  },
-  {
-    text: "Profile",
-    icon: <PersonIcon />,
-    path: "/profile",
-    key: "profile",
-  },
-];
+// Adding 'mode' prop (defaults to PASSENGER)
+const Sidebar = ({ active = "profile", mode = "PASSENGER" }) => {
+  const { logout } = useAuth();
 
-const Sidebar = ({ active = "dashboard" }) => {
   return (
     <Box
       sx={{
@@ -55,35 +33,74 @@ const Sidebar = ({ active = "dashboard" }) => {
         bgcolor: "#fff",
         position: "fixed",
         left: 0,
-        top: 64, // Navbar height
+        top: 80, // Matched with Navbar height (h-20)
         overflowY: "auto",
+        zIndex: 40,
       }}
     >
       <Toolbar />
 
       <List>
-        {menuItems.map((item) => (
+        {/* Only show 'Find a Lift' if the user is in PASSENGER mode */}
+        {mode === "PASSENGER" && (
           <ListItemButton
-            key={item.key}
-            selected={active === item.key}
+            component={Link}
+            to="/profile"
+            selected={active === "findLift"}
             sx={{
               mx: 2,
               mb: 1,
               borderRadius: 2,
-              "&.Mui-selected": {
-                bgcolor: "#E8F5E9",
-                color: "#2E7D32",
-              },
-              "&.Mui-selected .MuiListItemIcon-root": {
-                color: "#2E7D32",
-              },
+              "&.Mui-selected": { bgcolor: "#E8F5E9", color: "#2E7D32" },
+              "&.Mui-selected .MuiListItemIcon-root": { color: "#2E7D32" },
             }}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-
-            <ListItemText primary={item.text} />
+            <ListItemIcon>
+              <DirectionsCarIcon />
+            </ListItemIcon>
+            <ListItemText primary="Find a Lift" />
           </ListItemButton>
-        ))}
+        )}
+
+        {/* Only show 'Offer a Ride' if the user is in DRIVER mode */}
+        {mode === "DRIVER" && (
+          <ListItemButton
+            component={Link}
+            to="/profile"
+            selected={active === "offerRide"}
+            sx={{
+              mx: 2,
+              mb: 1,
+              borderRadius: 2,
+              "&.Mui-selected": { bgcolor: "#E8F5E9", color: "#2E7D32" },
+              "&.Mui-selected .MuiListItemIcon-root": { color: "#2E7D32" },
+            }}
+          >
+            <ListItemIcon>
+              <AddRoadIcon />
+            </ListItemIcon>
+            <ListItemText primary="Offer a Ride" />
+          </ListItemButton>
+        )}
+
+        {/* Profile is always visible */}
+        <ListItemButton
+          component={Link}
+          to="/profile"
+          selected={active === "profile"}
+          sx={{
+            mx: 2,
+            mb: 1,
+            borderRadius: 2,
+            "&.Mui-selected": { bgcolor: "#E8F5E9", color: "#2E7D32" },
+            "&.Mui-selected .MuiListItemIcon-root": { color: "#2E7D32" },
+          }}
+        >
+          <ListItemIcon>
+            <PersonIcon />
+          </ListItemIcon>
+          <ListItemText primary="Profile" />
+        </ListItemButton>
       </List>
 
       <Divider sx={{ mt: 3, mb: 2 }} />
@@ -93,11 +110,12 @@ const Sidebar = ({ active = "dashboard" }) => {
           <ListItemIcon>
             <SettingsIcon />
           </ListItemIcon>
-
           <ListItemText primary="Settings" />
         </ListItemButton>
 
+        {/* Clean Logout using Global State */}
         <ListItemButton
+          onClick={logout}
           sx={{
             mx: 2,
             borderRadius: 2,
@@ -107,7 +125,6 @@ const Sidebar = ({ active = "dashboard" }) => {
           <ListItemIcon sx={{ color: "error.main" }}>
             <LogoutIcon />
           </ListItemIcon>
-
           <ListItemText primary="Logout" />
         </ListItemButton>
       </List>
