@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Added for redirection
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,9 +10,10 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevents page reload
+    e.preventDefault();
     setError("");
     setLoading(true);
 
@@ -30,12 +32,18 @@ const LoginForm = () => {
 
       const data = await response.json();
 
-      // Save the JWT token received from Spring Boot
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data));
+      // ✅ FIX: Extract token and user payload safely.
+      // Adjust keys (data.token, data.user) to match whatever your Spring Boot Authentication response DTO sends back.
+      const token = data.token;
+      const userData = data.user || {
+        email,
+        roles: data.roles || ["PASSENGER"],
+      };
 
-      // Redirect to the home page (or dashboard)
-      navigate("/");
+      login(userData, token);
+
+      // Redirect to profile
+      navigate("/profile");
     } catch (err) {
       setError(err.message || "Failed to login. Please try again.");
     } finally {
