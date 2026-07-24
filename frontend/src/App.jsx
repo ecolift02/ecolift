@@ -7,7 +7,7 @@ import ProtectedRoute from "./components/Routes/ProtectedRoute";
 import RegisterVehicle from "./pages/Register/RegisterVehicle";
 import UserProfile from "./pages/Profile/UserProfile";
 // 1. IMPORT YOUR NEW DASHBOARD
-import Dashboard from "./pages/Dashboard/Dashboard"; 
+// import Dashboard from "./pages/Dashboard/Dashboard"; 
 
 function App() {
   return (
@@ -24,7 +24,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<UserProfile />} />
             {/* 2. ADD THE DASHBOARD ROUTE HERE */}
-            <Route path="/dashboard" element={<Dashboard />} /> 
+            {/* <Route path="/dashboard" element={<Dashboard />} />  */}
           </Route>
         </Routes>
       </BrowserRouter>
