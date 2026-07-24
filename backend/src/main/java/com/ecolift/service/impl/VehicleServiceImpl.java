@@ -115,7 +115,7 @@ public class VehicleServiceImpl implements VehicleService {
         }
 
         return savedVehicle;
-    }	
+    }
     @Override
     public Vehicle verifyVehicle(Long vehicleId) {
         Vehicle vehicle = findById(vehicleId);
