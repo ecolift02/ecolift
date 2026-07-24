@@ -41,9 +41,7 @@ const LoginForm = () => {
       };
 
       login(userData, token);
-
-      // Redirect to profile
-      navigate("/profile");
+      navigate("/");
     } catch (err) {
       setError(err.message || "Failed to login. Please try again.");
     } finally {

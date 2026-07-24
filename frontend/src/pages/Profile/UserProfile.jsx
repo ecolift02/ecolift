@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { Link } from "react-router-dom";
 // Shared Components
 import Navbar from "../../components/Navbar/Navbar";
 import Sidebar from "../../components/Sidebar/Sidebar";
@@ -16,7 +16,14 @@ const UserProfile = () => {
       <div className="flex min-h-screen bg-background pt-20">
         {/* Shared Sidebar */}
         <Sidebar active="profile" />
-
+        <div className="fixed top-23 left-8 z-50">
+          <Link
+            to="/"
+            className="px-5 py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center gap-2"
+          >
+            ← Go to Home
+          </Link>
+        </div>
         {/* Main Content */}
         <main className="flex-1 md:ml-72 p-8">
           {/* ================= HERO SECTION ================= */}

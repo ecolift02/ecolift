@@ -4,6 +4,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem("jwt_token"));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,20 +19,23 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (userData, token) => {
-    localStorage.setItem("jwt_token", token);
+  const login = (userData, jwtToken) => {
+    localStorage.setItem("jwt_token", jwtToken);
     localStorage.setItem("user_data", JSON.stringify(userData));
+    setToken(jwtToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("jwt_token");
     localStorage.removeItem("user_data");
+    setToken(null);
     setUser(null);
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
-  const isAuthenticated = !!localStorage.getItem("jwt_token");
+  // ✅ Fix: Use the reactive 'token' state here
+  const isAuthenticated = !!token;
 
   if (loading) return <div>Loading...</div>;
 
