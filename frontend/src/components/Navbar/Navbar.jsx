@@ -1,22 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
   const location = useLocation();
 
   // States
-  const [token, setToken] = useState(localStorage.getItem("token"));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
   const [userMode, setUserMode] = useState("passenger"); // Tracks active mode
 
   const dropdownRef = useRef(null);
-
-  // Re-check token on route changes
-  useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, [location]);
 
   // Handle clicking outside the dropdown to close it
   useEffect(() => {
@@ -35,18 +31,15 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setToken(null);
     setIsDropdownOpen(false);
     setIsModeMenuOpen(false);
+    logout();
     navigate("/");
   };
 
   const handleModeChange = (mode) => {
     setUserMode(mode);
     setIsModeMenuOpen(false); // Auto-close sub-dropdown on selection
-
-    // Optional: You could also close the main dropdown here if you prefer
-    // setIsDropdownOpen(false);
   };
 
   return (
@@ -85,7 +78,8 @@ const Navbar = () => {
 
         {/* Right Buttons / Conditional Rendering */}
         <div className="flex items-center gap-4">
-          {!token ? (
+          {/* Changed from !token to !isAuthenticated */}
+          {!isAuthenticated ? (
             <>
               <Link
                 to="/login"

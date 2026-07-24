@@ -34,7 +34,11 @@ const LoginForm = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data));
 
+
+      login(userData, token);
+
       // Redirect to the home page (or dashboard)
+
       navigate("/");
     } catch (err) {
       setError(err.message || "Failed to login. Please try again.");

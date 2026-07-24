@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
 
+  // 1. You must extract the login function from useAuth!
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
-    name: "", // Updated from fullName to match backend entity field 'name'
+    name: "",
     email: "",
     phone: "",
     role: "PASSENGER",
@@ -18,7 +22,6 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -46,13 +49,17 @@ const Register = () => {
 
       const data = await response.json();
 
-      // If backend automatically returns a token upon registration, save it
       if (data.token) {
-        localStorage.setItem("token", data.token);
+        // 2. Destructure the values out of 'data' so they are defined
+        const { token, email, name, roles } = data;
+
+        localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(data));
+
+        // 3. Now this login function is defined and has the correct variables
+        login(token, { email, name, roles });
       }
 
-      // Redirect to home page after successful registration
       navigate("/");
     } catch (err) {
       setError(err.message || "Something went wrong during registration.");
