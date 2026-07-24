@@ -1,5 +1,6 @@
 package com.ecolift.service.impl;
 
+import com.ecolift.entity.Location;
 import com.ecolift.entity.Ride;
 import com.ecolift.entity.User;
 import com.ecolift.entity.Vehicle;
@@ -7,12 +8,16 @@ import com.ecolift.exception.InvalidRideStateException;
 import com.ecolift.exception.ResourceNotFoundException;
 import com.ecolift.exception.SeatUnavailableException;
 import com.ecolift.exception.VehicleNotVerifiedException;
+import com.ecolift.repository.LocationRepository;
 import com.ecolift.repository.RideRepository;
 import com.ecolift.service.RideService;
 import com.ecolift.service.UserService;
 import com.ecolift.service.VehicleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,11 +27,14 @@ public class RideServiceImpl implements RideService {
     private final RideRepository rideRepository;
     private final UserService userService;
     private final VehicleService vehicleService;
+    private final LocationRepository locationRepository;
 
-    public RideServiceImpl(RideRepository rideRepository, UserService userService, VehicleService vehicleService) {
+    public RideServiceImpl(RideRepository rideRepository, UserService userService, VehicleService vehicleService,
+            LocationRepository locationRepository) {
         this.rideRepository = rideRepository;
         this.userService = userService;
         this.vehicleService = vehicleService;
+        this.locationRepository = locationRepository;
     }
 
     @Override
@@ -79,7 +87,7 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Ride publishRide(Long driverId, Long vehicleId, Ride ride) {
+    public Ride publishRide(Long driverId, Long vehicleId, Long departureLocationId, Long arrivalLocationId, Ride ride) {
         User driver = userService.getDriverProfile(driverId);
         Vehicle vehicle = vehicleService.findById(vehicleId);
 
@@ -92,8 +100,33 @@ public class RideServiceImpl implements RideService {
             throw new VehicleNotVerifiedException("Cannot publish a ride with an unverified vehicle.");
         }
 
+        Location departure = locationRepository.findById(departureLocationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Departure location not found with id: " + departureLocationId));
+
+        Location arrival = locationRepository.findById(arrivalLocationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Arrival location not found with id: " + arrivalLocationId));
+
+        if (departure.getId().equals(arrival.getId())) {
+            throw new IllegalArgumentException("Departure and arrival cannot be same.");
+        }
+
+        if (ride.getAvailableSeats() != null && vehicle.getCapacity() != null
+                && ride.getAvailableSeats() > vehicle.getCapacity()) {
+            throw new IllegalArgumentException("Available seats cannot exceed vehicle capacity.");
+        }
+
+        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Departure time cannot be in the past.");
+        }
+
+        if (ride.getPricePerSeat() != null && ride.getPricePerSeat().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Price per seat must be greater than zero.");
+        }
+
         ride.setDriver(driver);
         ride.setVehicle(vehicle);
+        ride.setDepartureLocation(departure);
+        ride.setArrivalLocation(arrival);
         
         // ERROR 3 FIXED: Removed setStatus(). Mapped to isDeleted flag instead.
         ride.setIsDeleted(false);
@@ -128,9 +161,8 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Ride> searchRides(Long startLocationId, Long endLocationId) {
-        // ERROR 2 FIXED: Called the correctly named repository method.
-        return rideRepository.findByDepartureLocationIdAndArrivalLocationIdAndIsDeletedFalse(startLocationId, endLocationId);
+    public List<Ride> searchRides(String source, String destination, LocalDateTime departureTime, Integer seats) {
+        return rideRepository.searchAvailableRides(source, destination, departureTime, seats);
     }
 
     @Override

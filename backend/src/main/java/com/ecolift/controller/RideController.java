@@ -43,6 +43,7 @@ public class RideController {
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
 
         // 2. Map request fields to your Ride entity
+        // Location resolution/validation and driver/vehicle assignment happen in the service layer.
         Ride ride = new Ride();
         ride.setDepartureTime(request.getDepartureTime());
         ride.setEstimateArrivalTime(request.getEstimateArrivalTime());
@@ -50,22 +51,33 @@ public class RideController {
         ride.setPricePerSeat(request.getPricePerSeat());
         ride.setIsDeleted(false);
 
-        // 3. Call service method using driver's ID and vehicle ID
-        Ride savedRide = rideService.publishRide(driver.getId(), request.getVehicleId(), ride);
+        // 3. Call service method using driver's ID, vehicle ID, and location IDs
+        Ride savedRide = rideService.publishRide(
+                driver.getId(),
+                request.getVehicleId(),
+                request.getDepartureLocationId(),
+                request.getArrivalLocationId(),
+                ride
+        );
         
         // 4. Convert saved Ride entity to RideResponse DTO and return
         return new ResponseEntity<>(mapToResponse(savedRide), HttpStatus.CREATED);
     }
 
     /**
-     * Search for available rides by Location IDs.
+     * Search for available rides by source city, destination city, departure date/time, and required seats.
+     * Example: GET /api/rides/search?source=Delhi&destination=Noida&date=2026-07-25T09:00&seats=2
      */
     @GetMapping("/search")
     public ResponseEntity<List<RideResponse>> searchRides(
-            @RequestParam Long sourceLocationId,
-            @RequestParam Long destinationLocationId
+            @RequestParam String source,
+            @RequestParam String destination,
+            @RequestParam("date")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime departureTime,
+            @RequestParam Integer seats
     ) {
-        List<Ride> rides = rideService.searchRides(sourceLocationId, destinationLocationId);
+        List<Ride> rides = rideService.searchRides(source, destination, departureTime, seats);
         
         List<RideResponse> responses = rides.stream()
                 .map(this::mapToResponse)
@@ -81,10 +93,12 @@ public class RideController {
         return RideResponse.builder()
                 .rideId(ride.getId())
                 .driverName(ride.getDriver() != null ? ride.getDriver().getName() : "Unknown")
-                .vehicleModel("Vehicle #" + (ride.getVehicle() != null ? ride.getVehicle().getId() : ""))
+                .vehicleModel(ride.getVehicle() != null
+                        ? ride.getVehicle().getManufacturer() + " " + ride.getVehicle().getModel()
+                        : "Unknown")
                 .vehicleLicensePlate(ride.getVehicle() != null ? ride.getVehicle().getLicensePlate() : "Unknown")
-                .departureLocationName("Location #" + (ride.getDepartureLocation() != null ? ride.getDepartureLocation().getId() : ""))
-                .arrivalLocationName("Location #" + (ride.getArrivalLocation() != null ? ride.getArrivalLocation().getId() : ""))
+                .departureLocationName(ride.getDepartureLocation() != null ? ride.getDepartureLocation().getCity() : "Unknown")
+                .arrivalLocationName(ride.getArrivalLocation() != null ? ride.getArrivalLocation().getCity() : "Unknown")
                 .departureTime(ride.getDepartureTime())
                 .estimateArrivalTime(ride.getEstimateArrivalTime())
                 .availableSeats(ride.getAvailableSeats())
