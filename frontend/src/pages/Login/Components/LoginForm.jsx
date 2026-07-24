@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Added for redirection
+import { useNavigate, Link } from "react-router-dom"; 
+// 1. Import the useAuth hook from your context file (Adjust the path if needed)
+import { useAuth } from "../../../context/AuthContext"; 
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,9 +11,12 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  
+  // 2. Destructure the login function from your AuthContext
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevents page reload
+    e.preventDefault(); 
     setError("");
     setLoading(true);
 
@@ -30,15 +35,12 @@ const LoginForm = () => {
 
       const data = await response.json();
 
-      // Save the JWT token received from Spring Boot
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data));
-
-
-      login(userData, token);
+      // 3. Use your context's login function. 
+      // It handles localStorage automatically, so you don't need to do it here.
+      // Assuming 'data' contains the user info and 'data.token' is the JWT.
+      login(data, data.token);
 
       // Redirect to the home page (or dashboard)
-
       navigate("/");
     } catch (err) {
       setError(err.message || "Failed to login. Please try again.");
