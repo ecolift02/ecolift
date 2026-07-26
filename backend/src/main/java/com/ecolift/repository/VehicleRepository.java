@@ -6,14 +6,20 @@ import java.util.List;
 import java.util.Optional;
 
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
-    
+
     Optional<Vehicle> findByLicensePlate(String licensePlate);
-    
-    // Updated to factor in the isDeleted flag so deleted vehicles don't show up
+
+    Optional<Vehicle> findByRegistrationNumber(String registrationNumber);
+
+    Optional<Vehicle> findByIdAndDriverIdAndIsDeletedFalse(Long id, Long driverId);
+
     List<Vehicle> findByDriverIdAndIsDeletedFalse(Long driverId);
-    
-    // Updated to match the 'isVerified' and 'isDeleted' field names exactly
+
+    List<Vehicle> findByDriverIdAndStatusAndIsDeletedFalse(Long driverId, String status);
+
     List<Vehicle> findByDriverIdAndIsVerifiedTrueAndIsDeletedFalse(Long driverId);
-    
+
     boolean existsByLicensePlate(String licensePlate);
+
+    boolean existsByRegistrationNumber(String registrationNumber);
 }

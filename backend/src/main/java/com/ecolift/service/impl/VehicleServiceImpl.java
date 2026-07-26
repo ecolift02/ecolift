@@ -70,6 +70,77 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    public Vehicle createVehicle(Long driverId, Vehicle vehicle) {
+        if (vehicleRepository.existsByLicensePlate(vehicle.getLicensePlate())) {
+            throw new DuplicateResourceException("Vehicle number already exists.");
+        }
+        if (vehicleRepository.existsByRegistrationNumber(vehicle.getRegistrationNumber())) {
+            throw new DuplicateResourceException("Registration number already exists.");
+        }
+
+        User driver = userService.findById(driverId);
+        vehicle.setDriver(driver);
+        vehicle.setIsDeleted(false);
+        // Auto-verify (see note in registerVehicle) since no verification flow exists yet.
+        vehicle.setIsVerified(true);
+
+        return vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    public List<Vehicle> getMyVehicles(Long driverId) {
+        userService.exists(driverId);
+        return vehicleRepository.findByDriverIdAndIsDeletedFalse(driverId);
+    }
+
+    @Override
+    public Vehicle getMyVehicleById(Long driverId, Long vehicleId) {
+        return vehicleRepository.findByIdAndDriverIdAndIsDeletedFalse(vehicleId, driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found for this driver."));
+    }
+
+    @Override
+    public Vehicle updateVehicleForDriver(Long driverId, Long vehicleId, Vehicle updatedVehicle) {
+        Vehicle vehicle = getMyVehicleById(driverId, vehicleId);
+
+        if (!vehicle.getLicensePlate().equals(updatedVehicle.getLicensePlate()) &&
+                vehicleRepository.existsByLicensePlate(updatedVehicle.getLicensePlate())) {
+            throw new DuplicateResourceException("Vehicle number already exists.");
+        }
+
+        if (!vehicle.getRegistrationNumber().equals(updatedVehicle.getRegistrationNumber()) &&
+                vehicleRepository.existsByRegistrationNumber(updatedVehicle.getRegistrationNumber())) {
+            throw new DuplicateResourceException("Registration number already exists.");
+        }
+
+        vehicle.setVehicleName(updatedVehicle.getVehicleName());
+        vehicle.setVehicleType(updatedVehicle.getVehicleType());
+        vehicle.setManufacturer(updatedVehicle.getManufacturer());
+        vehicle.setModel(updatedVehicle.getModel());
+        vehicle.setColor(updatedVehicle.getColor());
+        vehicle.setCapacity(updatedVehicle.getCapacity());
+        vehicle.setFuelType(updatedVehicle.getFuelType());
+        vehicle.setManufacturingYear(updatedVehicle.getManufacturingYear());
+        vehicle.setLicensePlate(updatedVehicle.getLicensePlate());
+        vehicle.setRegistrationNumber(updatedVehicle.getRegistrationNumber());
+        vehicle.setStatus(updatedVehicle.getStatus());
+
+        return vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    public void deleteVehicleForDriver(Long driverId, Long vehicleId) {
+        Vehicle vehicle = getMyVehicleById(driverId, vehicleId);
+        vehicle.setIsDeleted(true);
+        vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    public List<Vehicle> getActiveVehiclesForDriver(Long driverId) {
+        return vehicleRepository.findByDriverIdAndStatusAndIsDeletedFalse(driverId, "ACTIVE");
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Vehicle> findAll() {
         return vehicleRepository.findAll();
@@ -97,7 +168,11 @@ public class VehicleServiceImpl implements VehicleService {
         User driver = userService.findById(driverId);
         
         vehicle.setDriver(driver);
-        vehicle.setIsVerified(false);
+        // NOTE: There is no admin/verification workflow implemented yet (no endpoint
+        // calls verifyVehicle()), so leaving this "false" made it impossible for any
+        // vehicle to ever be used to publish a ride. Auto-verifying on registration
+        // until a real verification flow exists.
+        vehicle.setIsVerified(true);
         vehicle.setIsDeleted(false);
         
         Vehicle savedVehicle = vehicleRepository.save(vehicle);

@@ -18,4 +18,11 @@ public interface VehicleService {
     List<Vehicle> getVehiclesByDriver(Long driverId);
     Vehicle updateVehicle(Long vehicleId, Vehicle updatedData);
     List<Vehicle> findAvailableVehicles(Long driverId);
+
+    Vehicle createVehicle(Long driverId, Vehicle vehicle);
+    List<Vehicle> getMyVehicles(Long driverId);
+    Vehicle getMyVehicleById(Long driverId, Long vehicleId);
+    Vehicle updateVehicleForDriver(Long driverId, Long vehicleId, Vehicle updatedVehicle);
+    void deleteVehicleForDriver(Long driverId, Long vehicleId);
+    List<Vehicle> getActiveVehiclesForDriver(Long driverId);
 }

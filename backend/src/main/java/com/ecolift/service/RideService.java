@@ -15,8 +15,8 @@ public interface RideService {
     long count();
 
     Ride publishRide(Long driverId, Long vehicleId, Long departureLocationId, Long arrivalLocationId, Ride ride);
-    Ride updateRide(Long rideId, Ride ride);
-    void cancelRide(Long rideId);
+    Ride updateRide(Long rideId, Long driverId, Ride ride);
+    void cancelRide(Long rideId, Long driverId);
     void completeRide(Long rideId);
     List<Ride> searchRides(String source, String destination, LocalDateTime departureTime, Integer seats);
     List<Ride> getDriverRides(Long driverId);
