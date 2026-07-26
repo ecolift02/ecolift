@@ -157,7 +157,7 @@ const Register = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="your name"
+                placeholder="Your Name"
                 required
                 className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
               />
@@ -187,6 +187,8 @@ const Register = () => {
                 <input
                   type="tel"
                   name="phone"
+                  minlength="10"
+                  maxlength="10"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="9876543210"

@@ -108,19 +108,6 @@ const Navbar = () => {
             </>
           ) : (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-              {/* Eco Stats Pill */}
-              <div className="hidden sm:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full">
-                <span
-                  className="material-symbols-outlined text-green-700"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  eco
-                </span>
-                <span className="text-sm font-medium text-green-700">
-                  1,240 kg saved
-                </span>
-              </div>
-
               <div className="hidden md:flex items-center gap-2">
                 {currentMode === "DRIVER" ? (
                   <>

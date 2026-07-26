@@ -44,6 +44,7 @@ const PassengerView = () => {
               name="from"
               value={searchData.from}
               onChange={handleChange}
+              autoComplete="off"
               placeholder="From"
               className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
             />
@@ -56,6 +57,7 @@ const PassengerView = () => {
               type="text"
               name="to"
               value={searchData.to}
+              autoComplete="off"
               onChange={handleChange}
               placeholder="To"
               className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"

@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setCurrentMode("PASSENGER");
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   // ✅ Fix: Use the reactive 'token' state here

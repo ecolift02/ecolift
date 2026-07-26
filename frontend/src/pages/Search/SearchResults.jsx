@@ -98,8 +98,18 @@ const SearchResults = () => {
             )}
 
             {error && (
-              <div className="rounded-2xl bg-red-50 border border-red-200 text-red-600 p-4">
-                {error}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-600">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+                <button
+                  type="button" // Prevents form submission when closing the alert
+                  onClick={() => setError(null)}
+                  className="rounded-full p-1 text-red-400 transition hover:bg-red-100 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
 
@@ -145,7 +155,9 @@ const SearchResults = () => {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/ride-details", { state: { ride } })}
+                      onClick={() =>
+                        navigate("/ride-details", { state: { ride } })
+                      }
                       className="mt-5 w-full rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
                     >
                       Details
