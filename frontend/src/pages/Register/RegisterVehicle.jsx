@@ -114,19 +114,27 @@ const RegisterVehicle = () => {
         {/* Header Banner */}
         <div className="bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 px-4 py-10 md:px-10">
           <div className="mx-auto max-w-3xl">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-white/15 p-3">
-                <Car className="h-6 w-6 text-white" />
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-white/15 p-3">
+                  <Car className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">
+                    Register Your Vehicle
+                  </h1>
+                  <p className="mt-1 text-sm text-emerald-50">
+                    Add your vehicle details to start offering rides and
+                    sharing your eco-journey.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  Register Your Vehicle
-                </h1>
-                <p className="mt-1 text-sm text-emerald-50">
-                  Add your vehicle details to start offering rides and
-                  sharing your eco-journey.
-                </p>
-              </div>
+              <button
+                onClick={() => navigate("/driver/vehicles")}
+                className="flex items-center gap-2 rounded-xl border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                View My Vehicles
+              </button>
             </div>
           </div>
         </div>
@@ -192,6 +200,7 @@ const RegisterVehicle = () => {
                         <option value="SUV">SUV</option>
                         <option value="Hatchback">Hatchback</option>
                         <option value="Sedan">Sedan</option>
+                        <option value="Bike">Bike</option>
                         <option value="Van">Van</option>
                       </select>
                     </div>

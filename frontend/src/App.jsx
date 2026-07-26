@@ -10,6 +10,7 @@ import SearchResults from "./pages/Search/SearchResults";
 import RideDetails from "./pages/RideDetails/RideDetails";
 import Booking from "./pages/Booking/Booking";
 import DriverRides from "./pages/DriverRides/DriverRides";
+import MyVehicles from "./pages/MyVehicles/MyVehicles";
 function App() {
   return (
     <AuthProvider>
@@ -34,6 +35,7 @@ function App() {
           {/* Protected Routes: DRIVERS only */}
           <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
             <Route path="/driver/rides" element={<DriverRides />} />
+            <Route path="/driver/vehicles" element={<MyVehicles />} />
           </Route>
           {/* <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
             <Route path="/driver-dashboard" element={<DriverDashboard />} />
