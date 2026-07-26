@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -12,12 +12,12 @@ import {
   AlertCircle,
   X,
 } from "lucide-react";
+import api from "../../api/axiosConfig";
 
 const DriverView = () => {
   const navigate = useNavigate();
 
   const [error, setError] = useState(null);
-  const [userVehicles, setUserVehicles] = useState([]);
 
   // Form State
   const [rideDetails, setRideDetails] = useState({
@@ -32,6 +32,9 @@ const DriverView = () => {
   // Flow State
   const [step, setStep] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [activeVehicles, setActiveVehicles] = useState([]);
+  const [vehicleLoading, setVehicleLoading] = useState(true);
+  const [vehicleError, setVehicleError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,6 +58,28 @@ const DriverView = () => {
 
   const minDateTime = getMinDateTime();
 
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setVehicleLoading(true);
+      setVehicleError("");
+
+      try {
+        const response = await api.get("/v1/vehicles/my");
+        const vehicles = Array.isArray(response.data) ? response.data : [];
+        setActiveVehicles(vehicles.filter((vehicle) => vehicle.status === "ACTIVE"));
+        if (vehicles.length > 0) {
+          setSelectedVehicle(vehicles.find((v) => v.status === "ACTIVE") || null);
+        }
+      } catch (error) {
+        setVehicleError("Unable to load your vehicles. Please try again.");
+      } finally {
+        setVehicleLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
   const handleContinue = (e) => {
     e.preventDefault();
     setError(null); // Clear any previous errors
@@ -75,8 +100,8 @@ const DriverView = () => {
       return;
     }
 
-    if (userVehicles.length > 0) {
-      setSelectedVehicle(userVehicles[0]);
+    if (activeVehicles.length > 0) {
+      setSelectedVehicle(activeVehicles[0]);
     }
     setStep(2);
   };
@@ -87,15 +112,82 @@ const DriverView = () => {
     // Safety check just in case
     if (!selectedVehicle) return;
 
-    console.log("Finalizing Publish with:", {
-      ...rideDetails,
-      vehicle: selectedVehicle,
-    });
-    // Integration logic for POST /api/v1/rides goes here
+    setError(null);
+
+    // Prepare payload matching backend RidePublishRequest
+    const payload = {
+      vehicleId: selectedVehicle.id,
+      departureLocationId: rideDetails.sourceLocationId || null,
+      arrivalLocationId: rideDetails.destinationLocationId || null,
+      departureCity: rideDetails.source,
+      arrivalCity: rideDetails.destination,
+      departureTime: rideDetails.departureTime,
+      estimateArrivalTime: rideDetails.arrivalTime,
+      availableSeats: Number(rideDetails.availableSeats),
+      pricePerSeat: Number(rideDetails.pricePerSeat),
+    };
+
+    // Basic client-side validation
+    if (!rideDetails.source || !rideDetails.destination) {
+      setError("Please enter both source and destination.");
+      return;
+    }
+
+    if (!payload.departureTime) {
+      setError("Please provide a valid departure time.");
+      return;
+    }
+
+    if (new Date(payload.departureTime) <= new Date()) {
+      setError("Departure time cannot be in the past.");
+      return;
+    }
+
+    if (payload.estimateArrivalTime && new Date(payload.estimateArrivalTime) <= new Date(payload.departureTime)) {
+      setError("Arrival time must be after departure time.");
+      return;
+    }
+
+    if (payload.pricePerSeat <= 0) {
+      setError("Price per seat must be greater than 0.");
+      return;
+    }
+
+    if (payload.availableSeats <= 0) {
+      setError("Available seats must be at least 1.");
+      return;
+    }
+
+    // Call backend API
+    api
+      .post("/rides", payload)
+      .then((res) => {
+        // success - navigate to driver dashboard or published rides
+        navigate("/driver/rides");
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Failed to publish ride.";
+        setError(msg);
+      });
   };
 
   return (
     <div className="w-full">
+      {/* Quick nav to the driver's published rides list */}
+      {step === 1 && (
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Publish a Ride</h2>
+          <button
+            type="button"
+            onClick={() => navigate("/driver/rides")}
+            className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+          >
+            <Car className="h-4 w-4" />
+            My Rides
+          </button>
+        </div>
+      )}
+
       {/* STEP 1: Original Ride Details Form */}
 
       {step === 1 && (
@@ -247,7 +339,7 @@ const DriverView = () => {
                 Select your vehicle
               </h3>
               <p className="text-xs text-green-400">
-                {userVehicles.length === 0
+                {activeVehicles.length === 0
                   ? "You need to add a vehicle before publishing a ride."
                   : "Which car are you driving for this trip?"}
               </p>
@@ -256,7 +348,7 @@ const DriverView = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Renders registered vehicles if any exist */}
-            {userVehicles.map((vehicle) => (
+            {activeVehicles.map((vehicle) => (
               <div
                 key={vehicle.id}
                 onClick={() => setSelectedVehicle(vehicle)}
@@ -272,10 +364,10 @@ const DriverView = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-slate-800">
-                      {vehicle.make} {vehicle.model}
+                      {vehicle.vehicleName}
                     </p>
                     <p className="text-xs text-slate-500 font-mono">
-                      {vehicle.plate}
+                      {vehicle.vehicleNumber}
                     </p>
                   </div>
                 </div>
@@ -290,7 +382,7 @@ const DriverView = () => {
                   state: { savedRide: rideDetails },
                 })
               }
-              className="p-4 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group min-h-[88px]"
+              className="p-4 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group min-h-22"
             >
               <Plus className="text-slate-400 group-hover:text-emerald-600 transition" />
               <span className="text-sm font-medium text-slate-500 group-hover:text-emerald-700 transition">

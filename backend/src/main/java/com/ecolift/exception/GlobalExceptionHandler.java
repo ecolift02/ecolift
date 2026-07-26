@@ -67,6 +67,85 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles "not found" lookups (e.g., driver, vehicle, location, ride not found).
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.NOT_FOUND, request);
+    }
+
+    /**
+     * Handles duplicate data conflicts (e.g., license plate/registration number already exists).
+     */
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(
+            DuplicateResourceException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.CONFLICT, request);
+    }
+
+    /**
+     * Handles invalid ride state transitions (e.g., vehicle doesn't belong to driver,
+     * ride already cancelled).
+     */
+    @ExceptionHandler(InvalidRideStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRideStateException(
+            InvalidRideStateException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.CONFLICT, request);
+    }
+
+    /**
+     * Handles attempts to publish a ride with an unverified vehicle.
+     */
+    @ExceptionHandler(VehicleNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleVehicleNotVerifiedException(
+            VehicleNotVerifiedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
+    }
+
+    /**
+     * Handles seat availability conflicts on booking.
+     */
+    @ExceptionHandler(SeatUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleSeatUnavailableException(
+            SeatUnavailableException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.CONFLICT, request);
+    }
+
+    /**
+     * Handles actions performed by a user without the right permissions on a resource
+     * (distinct from Spring Security's own AccessDeniedException).
+     */
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(
+            UnauthorizedActionException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
+    }
+
+    /**
+     * Handles payment processing failures.
+     */
+    @ExceptionHandler(PaymentFailedException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentFailedException(
+            PaymentFailedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.PAYMENT_REQUIRED, request);
+    }
+
+    /**
      * Handles RBAC Security failures (@PreAuthorize rejections).
      */
     @ExceptionHandler(AccessDeniedException.class)

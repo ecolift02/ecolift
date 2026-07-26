@@ -9,6 +9,7 @@ import UserProfile from "./pages/Profile/UserProfile";
 import SearchResults from "./pages/Search/SearchResults";
 import RideDetails from "./pages/RideDetails/RideDetails";
 import Booking from "./pages/Booking/Booking";
+import DriverRides from "./pages/DriverRides/DriverRides";
 function App() {
   return (
     <AuthProvider>
@@ -31,6 +32,9 @@ function App() {
           </Route>
 
           {/* Protected Routes: DRIVERS only */}
+          <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
+            <Route path="/driver/rides" element={<DriverRides />} />
+          </Route>
           {/* <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
             <Route path="/driver-dashboard" element={<DriverDashboard />} />
             <Route

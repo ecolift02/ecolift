@@ -7,6 +7,7 @@ import com.ecolift.entity.Vehicle;
 import com.ecolift.exception.InvalidRideStateException;
 import com.ecolift.exception.ResourceNotFoundException;
 import com.ecolift.exception.SeatUnavailableException;
+import com.ecolift.exception.UnauthorizedActionException;
 import com.ecolift.exception.VehicleNotVerifiedException;
 import com.ecolift.repository.LocationRepository;
 import com.ecolift.repository.RideRepository;
@@ -135,15 +136,56 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Ride updateRide(Long rideId, Ride updatedData) {
-        return update(rideId, updatedData);
+    public Ride updateRide(Long rideId, Long driverId, Ride updatedData) {
+        Ride ride = findById(rideId);
+
+        if (!ride.getDriver().getId().equals(driverId)) {
+            throw new UnauthorizedActionException("You are not authorized to edit this ride.");
+        }
+
+        if (Boolean.TRUE.equals(ride.getIsDeleted())) {
+            throw new InvalidRideStateException("Cannot edit a cancelled ride.");
+        }
+
+        if (updatedData.getDepartureTime() != null && updatedData.getDepartureTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Departure time cannot be in the past.");
+        }
+
+        if (updatedData.getEstimateArrivalTime() != null && updatedData.getDepartureTime() != null
+                && !updatedData.getEstimateArrivalTime().isAfter(updatedData.getDepartureTime())) {
+            throw new IllegalArgumentException("Arrival time must be after departure time.");
+        }
+
+        if (updatedData.getPricePerSeat() != null && updatedData.getPricePerSeat().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Price per seat must be greater than zero.");
+        }
+
+        if (updatedData.getAvailableSeats() != null) {
+            if (updatedData.getAvailableSeats() < 1) {
+                throw new IllegalArgumentException("Must offer at least 1 seat.");
+            }
+            if (ride.getVehicle() != null && ride.getVehicle().getCapacity() != null
+                    && updatedData.getAvailableSeats() > ride.getVehicle().getCapacity()) {
+                throw new IllegalArgumentException("Available seats cannot exceed vehicle capacity.");
+            }
+        }
+
+        ride.setDepartureTime(updatedData.getDepartureTime());
+        ride.setEstimateArrivalTime(updatedData.getEstimateArrivalTime());
+        ride.setPricePerSeat(updatedData.getPricePerSeat());
+        ride.setAvailableSeats(updatedData.getAvailableSeats());
+
+        return rideRepository.save(ride);
     }
 
     @Override
-    public void cancelRide(Long rideId) {
+    public void cancelRide(Long rideId, Long driverId) {
         Ride ride = findById(rideId);
-        
-        // ERROR 3 FIXED: Removed string status check. Using isDeleted.
+
+        if (!ride.getDriver().getId().equals(driverId)) {
+            throw new UnauthorizedActionException("You are not authorized to cancel this ride.");
+        }
+
         if (Boolean.TRUE.equals(ride.getIsDeleted())) {
             throw new InvalidRideStateException("Ride is already cancelled.");
         }

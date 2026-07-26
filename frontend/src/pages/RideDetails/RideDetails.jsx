@@ -1,13 +1,61 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../api/axiosConfig";
 
 const RideDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const ride = location.state?.ride;
+  const [ride, setRide] = useState(location.state?.ride);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const rideId = location.state?.ride?.rideId;
+
+  useEffect(() => {
+    const loadRideDetails = async () => {
+      if (!rideId) {
+        return;
+      }
+
+      setLoadingDetails(true);
+      try {
+        const response = await api.get(`/rides/${rideId}`);
+        setRide(response.data);
+      } catch (error) {
+        console.error("Failed to load ride details:", error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+
+    loadRideDetails();
+  }, [rideId]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) {
+      return "Not Available";
+    }
+    const parsedDate = new Date(dateString);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Not Available";
+    }
+
+    return parsedDate.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const availableSeatsLabel = loadingDetails
+    ? "Loading..."
+    : ride?.availableSeats ?? "N/A";
 
   const handleBook = () => {
     if (!isAuthenticated) {
@@ -73,7 +121,13 @@ const RideDetails = () => {
             <div className="rounded-2xl bg-emerald-50 p-4">
               <p className="text-sm text-gray-500">Departure</p>
               <p className="text-lg font-semibold text-gray-900">
-                {new Date(ride.departureTime).toLocaleString()}
+                {formatDate(ride.departureTime)}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4">
+              <p className="text-sm text-gray-500">Arrival</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {loadingDetails ? "Loading details..." : formatDate(ride.arrivalTime)}
               </p>
             </div>
             <div className="rounded-2xl bg-emerald-50 p-4">
@@ -81,6 +135,10 @@ const RideDetails = () => {
               <p className="text-lg font-semibold text-gray-900">
                 {ride.departureLocationName} to {ride.arrivalLocationName}
               </p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4">
+              <p className="text-sm text-gray-500">Available Seats</p>
+              <p className="text-lg font-semibold text-gray-900">{availableSeatsLabel}</p>
             </div>
           </div>
 

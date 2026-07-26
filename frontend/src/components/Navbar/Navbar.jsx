@@ -124,12 +124,12 @@ const Navbar = () => {
               <div className="hidden md:flex items-center gap-2">
                 {currentMode === "DRIVER" ? (
                   <>
-                    <a
-                      href="#"
+                    <Link
+                      to="/driver/rides"
                       className="rounded-full border border-green-200 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50"
                     >
-                      Driver Hub
-                    </a>
+                      My Rides
+                    </Link>
                   </>
                 ) : (
                   <>
@@ -174,6 +174,19 @@ const Navbar = () => {
                     </span>
                     Profile
                   </Link>
+
+                  {currentMode === "DRIVER" && (
+                    <Link
+                      to="/driver/rides"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="px-4 py-2 text-sm text-gray-600 hover:bg-green-50 hover:text-green-700 transition flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        directions_car
+                      </span>
+                      My Rides
+                    </Link>
+                  )}
 
                   {/* Mode Switcher (Sub-dropdown trigger) */}
                   <div className="relative">

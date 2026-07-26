@@ -1,17 +1,61 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Car,
+  Hash,
+  Palette,
+  Users,
+  Fuel,
+  CalendarDays,
+  FileText,
+  ToggleLeft,
+  AlertCircle,
+  CheckCircle2,
+  Tag,
+} from "lucide-react";
+import api from "../../api/axiosConfig";
+import Navbar from "../../components/Navbar/Navbar";
+import Footer from "../../components/Footer/Footer";
+
+const inputClasses =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100";
+
+const labelClasses = "mb-1.5 block text-xs font-medium text-slate-500";
+
+const Field = ({ icon: Icon, label, children }) => (
+  <div>
+    <label className={labelClasses}>{label}</label>
+    <div className="relative">
+      {Icon && (
+        <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+      )}
+      {React.cloneElement(children, {
+        className: `${inputClasses} ${Icon ? "pl-10" : ""}`,
+      })}
+    </div>
+  </div>
+);
 
 const RegisterVehicle = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
-    manufacturer: "",
+    vehicleName: "",
+    vehicleNumber: "",
+    vehicleType: "Car",
+    brand: "",
     model: "",
-    licensePlate: "",
-    capacity: "",
+    color: "",
+    seatCapacity: 4,
+    fuelType: "Petrol",
+    manufacturingYear: new Date().getFullYear(),
+    registrationNumber: "",
+    status: "ACTIVE",
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -27,148 +71,284 @@ const RegisterVehicle = () => {
     setError("");
     setLoading(true);
 
-    // Retrieve the JWT token stored during login
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("You must be logged in to register a vehicle.");
-      setLoading(false);
-      navigate("/login");
-      return;
-    }
-
     try {
-      const response = await fetch("http://localhost:8083/api/vehicles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Pass JWT token in headers
-        },
-        body: JSON.stringify({
-          manufacturer: formData.manufacturer,
-          model: formData.model,
-          licensePlate: formData.licensePlate,
-          capacity: parseInt(formData.capacity, 10),
-        }),
+      await api.post("/v1/vehicles", {
+        vehicleName: formData.vehicleName,
+        vehicleNumber: formData.vehicleNumber,
+        vehicleType: formData.vehicleType,
+        brand: formData.brand,
+        model: formData.model,
+        color: formData.color,
+        seatCapacity: parseInt(formData.seatCapacity, 10),
+        fuelType: formData.fuelType,
+        manufacturingYear: parseInt(formData.manufacturingYear, 10),
+        registrationNumber: formData.registrationNumber,
+        status: formData.status,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to register vehicle.");
-      }
+      setSuccess(true);
 
-      const data = await response.json();
-      console.log("Vehicle Registered Successfully:", data);
-
-      // If the user was upgraded to a driver, you can optionally update local storage user info
-      alert("Vehicle registered successfully! You are now a Driver.");
-
-      // Redirect to profile or dashboard
-      navigate("/profile");
+      // If the driver arrived here mid-way through publishing a ride, send them
+      // back to that flow; otherwise go to their profile.
+      const savedRide = location.state?.savedRide;
+      setTimeout(() => {
+        navigate(savedRide ? "/" : "/profile", {
+          state: savedRide ? { savedRide } : undefined,
+        });
+      }, 1200);
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(
+        err?.response?.data?.message ||
+          "Something went wrong while registering your vehicle. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-6 bg-gray-50 relative">
-      {/* Go to Home Button */}
-      <div className="fixed top-6 right-6 z-50">
-        <Link
-          to="/"
-          className="px-5 py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center gap-2"
-        >
-          ← Go to Home
-        </Link>
-      </div>
+    <>
+      <Navbar />
 
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-md">
-        <h2 className="text-3xl font-bold mb-2 text-green-800">
-          Register Vehicle
-        </h2>
-        <p className="text-gray-500 mb-6">
-          Add your vehicle details to start offering rides and sharing your
-          eco-journey.
-        </p>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
+      <main className="min-h-screen bg-slate-50 pt-20">
+        {/* Header Banner */}
+        <div className="bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 px-4 py-10 md:px-10">
+          <div className="mx-auto max-w-3xl">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-white/15 p-3">
+                <Car className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  Register Your Vehicle
+                </h1>
+                <p className="mt-1 text-sm text-emerald-50">
+                  Add your vehicle details to start offering rides and
+                  sharing your eco-journey.
+                </p>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium text-sm">
-              Manufacturer (Make)
-            </label>
-            <input
-              type="text"
-              name="manufacturer"
-              value={formData.manufacturer}
-              onChange={handleChange}
-              placeholder="e.g., Toyota, Honda"
-              required
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
-            />
+        {/* Form Card */}
+        <div className="px-4 py-8 md:px-10">
+          <div className="mx-auto max-w-3xl">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+              {error && (
+                <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-600">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-700">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <p className="text-sm font-medium">
+                    Vehicle registered successfully! Redirecting...
+                  </p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Section: Basic Info */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                    Basic Info
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field icon={Car} label="Vehicle Name">
+                      <input
+                        type="text"
+                        name="vehicleName"
+                        value={formData.vehicleName}
+                        onChange={handleChange}
+                        placeholder="e.g., Toyota Prius"
+                        required
+                      />
+                    </Field>
+
+                    <Field icon={Hash} label="Vehicle Number">
+                      <input
+                        type="text"
+                        name="vehicleNumber"
+                        value={formData.vehicleNumber}
+                        onChange={handleChange}
+                        placeholder="e.g., MH12AB1234"
+                        required
+                      />
+                    </Field>
+
+                    <div className="md:col-span-2">
+                      <label className={labelClasses}>Vehicle Type</label>
+                      <select
+                        name="vehicleType"
+                        value={formData.vehicleType}
+                        onChange={handleChange}
+                        className={inputClasses}
+                      >
+                        <option value="Car">Car</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Hatchback">Hatchback</option>
+                        <option value="Sedan">Sedan</option>
+                        <option value="Van">Van</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Vehicle Details */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                    Vehicle Details
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field icon={Tag} label="Brand">
+                      <input
+                        type="text"
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleChange}
+                        placeholder="e.g., Toyota"
+                        required
+                      />
+                    </Field>
+
+                    <Field icon={Car} label="Model">
+                      <input
+                        type="text"
+                        name="model"
+                        value={formData.model}
+                        onChange={handleChange}
+                        placeholder="e.g., Prius"
+                        required
+                      />
+                    </Field>
+
+                    <Field icon={Palette} label="Color">
+                      <input
+                        type="text"
+                        name="color"
+                        value={formData.color}
+                        onChange={handleChange}
+                        placeholder="e.g., Blue"
+                        required
+                      />
+                    </Field>
+
+                    <Field icon={CalendarDays} label="Manufacturing Year">
+                      <input
+                        type="number"
+                        name="manufacturingYear"
+                        min="1900"
+                        max={new Date().getFullYear()}
+                        value={formData.manufacturingYear}
+                        onChange={handleChange}
+                        required
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Section: Capacity & Fuel */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                    Capacity &amp; Fuel
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field icon={Users} label="Seat Capacity">
+                      <input
+                        type="number"
+                        name="seatCapacity"
+                        min="1"
+                        max="10"
+                        value={formData.seatCapacity}
+                        onChange={handleChange}
+                        required
+                      />
+                    </Field>
+
+                    <div>
+                      <label className={labelClasses}>Fuel Type</label>
+                      <div className="relative">
+                        <Fuel className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+                        <select
+                          name="fuelType"
+                          value={formData.fuelType}
+                          onChange={handleChange}
+                          className={`${inputClasses} pl-10`}
+                        >
+                          <option value="Petrol">Petrol</option>
+                          <option value="Diesel">Diesel</option>
+                          <option value="Electric">Electric</option>
+                          <option value="Hybrid">Hybrid</option>
+                          <option value="CNG">CNG</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Registration */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+                    Registration
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field icon={FileText} label="Registration Number">
+                      <input
+                        type="text"
+                        name="registrationNumber"
+                        value={formData.registrationNumber}
+                        onChange={handleChange}
+                        placeholder="e.g., MH12AB1234"
+                        required
+                      />
+                    </Field>
+
+                    <div>
+                      <label className={labelClasses}>Status</label>
+                      <div className="relative">
+                        <ToggleLeft className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+                        <select
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          className={`${inputClasses} pl-10`}
+                        >
+                          <option value="ACTIVE">ACTIVE</option>
+                          <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loading ? "Registering Vehicle..." : "Register Vehicle"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
+        </div>
+      </main>
 
-          <div>
-            <label className="block mb-1 font-medium text-sm">Model</label>
-            <input
-              type="text"
-              name="model"
-              value={formData.model}
-              onChange={handleChange}
-              placeholder="e.g., Prius, Civic"
-              required
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium text-sm">
-              License Plate
-            </label>
-            <input
-              type="text"
-              name="licensePlate"
-              value={formData.licensePlate}
-              onChange={handleChange}
-              placeholder="e.g., MH12AB1234"
-              required
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium text-sm">
-              Passenger Capacity
-            </label>
-            <input
-              type="number"
-              name="capacity"
-              min="1"
-              value={formData.capacity}
-              onChange={handleChange}
-              placeholder="e.g., 4"
-              required
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-700 text-white py-3 rounded-lg hover:bg-green-800 transition disabled:opacity-50 font-medium shadow-sm"
-          >
-            {loading ? "Registering Vehicle..." : "Register Vehicle"}
-          </button>
-        </form>
-      </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

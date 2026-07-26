@@ -1,42 +1,27 @@
 package com.ecolift.dto.request;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 @Data
-public class RidePublishRequest {
-
-    @NotNull(message = "Vehicle ID is required")
-    private Long vehicleId;
-
-    // Either location IDs or city names can be provided. When IDs are not available,
-    // the controller will attempt to resolve locations by city name.
-    private Long departureLocationId;
-
-    private Long arrivalLocationId;
-
-    // Optional city fallbacks when location IDs are not yet known on the client.
-    private String departureCity;
-
-    private String arrivalCity;
-
+public class RideUpdateRequest {
+ 
     @NotNull(message = "Departure time is required")
     @Future(message = "Departure time must be in the future")
     private LocalDateTime departureTime;
-
-    // Optional: Let the user provide an estimated arrival time if they want to
+ 
     @Future(message = "Estimated arrival time must be in the future")
     private LocalDateTime estimateArrivalTime;
-
+ 
     @NotNull(message = "Available seats are required")
     @Min(value = 1, message = "Must offer at least 1 seat")
     private Integer availableSeats;
-
+ 
     @NotNull(message = "Price per seat is required")
     @Min(value = 0, message = "Price cannot be negative")
     private BigDecimal pricePerSeat;

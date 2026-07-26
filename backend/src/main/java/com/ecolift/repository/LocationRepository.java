@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Long> {
-    // No custom methods are needed for the current service implementation 
-    // because standard CRUD operations are inherited from JpaRepository,
-    // and the findNearbyLocations logic is handled in memory via Streams.
+    // Allow lookup by city name when clients only submit city strings.
+    Location findByCity(String city);
 }

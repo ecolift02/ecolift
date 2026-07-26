@@ -19,7 +19,7 @@ public class RideResponse {
     private String arrivalLocationName;
     
     private LocalDateTime departureTime;
-    private LocalDateTime estimateArrivalTime; // Added to match your Ride entity
+    private LocalDateTime arrivalTime;
     private Integer availableSeats;
     private BigDecimal pricePerSeat;
     private Boolean isDeleted; // Added to match your Ride entity's deletion flag
