@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext";
-import OTPModal from "../../../components/OTP/OTPModal";
+import { useNavigate, Link } from "react-router-dom"; 
+// 1. Import the useAuth hook from your context file (Adjust the path if needed)
+import { useAuth } from "../../../context/AuthContext"; 
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,84 +9,44 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Email/Password, 2: OTP Verification
-  const [showOTPModal, setShowOTPModal] = useState(false);
-  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
 
   const navigate = useNavigate();
+  
+  // 2. Destructure the login function from your AuthContext
   const { login } = useAuth();
 
-  // Step 1: Verify email and password, send OTP
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); 
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:8083/api/auth/login-step1",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch("http://localhost:8083/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data.success) {
-        setOtpExpiresAt(data.expiresAt);
-        setShowOTPModal(true);
-        setStep(2);
-      } else {
-        setError(data.message || "Invalid email or password");
+      if (!response.ok) {
+        throw new Error("Invalid email or password");
       }
+
+      const data = await response.json();
+
+      // 3. Use your context's login function. 
+      // It handles localStorage automatically, so you don't need to do it here.
+      // Assuming 'data' contains the user info and 'data.token' is the JWT.
+      login(data, data.token);
+
+      // Redirect to the home page (or dashboard)
+      navigate("/");
     } catch (err) {
       setError(err.message || "Failed to login. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Step 2: Verify OTP and complete login
-  const handleVerifyOTP = async (otpCode) => {
-    setError("");
-    setLoading(true);
-
-    try {
-      const response = await fetch(
-        "http://localhost:8083/api/auth/login-step2",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, code: otpCode }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || "OTP verification failed");
-      }
-
-      const data = await response.json();
-
-      if (data.token) {
-        login(data, data.token);
-        navigate("/");
-      }
-    } catch (err) {
-      setError(err.message || "Failed to verify OTP. Please try again.");
-      setLoading(false);
-      throw err;
-    }
-  };
-
-  const handleCloseOTPModal = () => {
-    setShowOTPModal(false);
   };
 
   return (
@@ -125,8 +85,7 @@ const LoginForm = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@company.com"
               required
-              disabled={loading}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none disabled:bg-gray-100"
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
             />
           </div>
 
@@ -140,8 +99,7 @@ const LoginForm = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                disabled={loading}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none disabled:bg-gray-100"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
               />
               <button
                 type="button"
@@ -153,16 +111,6 @@ const LoginForm = () => {
                 </span>
               </button>
             </div>
-          </div>
-
-          {/* Forgot Password Link */}
-          <div className="text-right">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-green-700 font-semibold hover:underline"
-            >
-              Forgot Password?
-            </Link>
           </div>
 
           {/* Login Button */}
@@ -188,16 +136,6 @@ const LoginForm = () => {
           </p>
         </div>
       </div>
-
-      {/* OTP Modal */}
-      <OTPModal
-        isOpen={showOTPModal}
-        email={email}
-        onClose={handleCloseOTPModal}
-        onVerifySuccess={handleVerifyOTP}
-        isLoading={loading}
-        otpExpiresAt={otpExpiresAt}
-      />
     </div>
   );
 };

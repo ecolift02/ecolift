@@ -108,19 +108,6 @@ const Navbar = () => {
             </>
           ) : (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-              {/* Eco Stats Pill */}
-              <div className="hidden sm:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full">
-                <span
-                  className="material-symbols-outlined text-green-700"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  eco
-                </span>
-                <span className="text-sm font-medium text-green-700">
-                  1,240 kg saved
-                </span>
-              </div>
-
               <div className="hidden md:flex items-center gap-2">
                 {currentMode === "DRIVER" ? (
                   <>
@@ -129,12 +116,6 @@ const Navbar = () => {
                       className="rounded-full border border-green-200 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50"
                     >
                       My Rides
-                    </Link>
-                    <Link
-                      to="/driver/vehicles"
-                      className="rounded-full border border-green-200 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50"
-                    >
-                      My Vehicles
                     </Link>
                   </>
                 ) : (
@@ -191,19 +172,6 @@ const Navbar = () => {
                         directions_car
                       </span>
                       My Rides
-                    </Link>
-                  )}
-
-                  {currentMode === "DRIVER" && (
-                    <Link
-                      to="/driver/vehicles"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="px-4 py-2 text-sm text-gray-600 hover:bg-green-50 hover:text-green-700 transition flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">
-                        garage
-                      </span>
-                      My Vehicles
                     </Link>
                   )}
 

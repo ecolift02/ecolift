@@ -2,7 +2,6 @@ package com.ecolift.entity;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,13 +50,6 @@ public class User {
     private String profilePictureUrl;
     
     private Boolean isDeleted = false;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isEmailVerified = false;
-
-    @Column
-    private LocalDateTime emailVerifiedAt;
     
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
