@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import OTPModal from "../../components/OTP/OTPModal";
 
 const Register = () => {
   const navigate = useNavigate();
-
-  // 1. You must extract the login function from useAuth!
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -19,6 +18,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1: Form, 2: OTP Verification
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
+  const [showOTPModal, setShowOTPModal] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,23 +31,60 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  // Send OTP for email verification
+  const handleVerifyEmail = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8083/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "http://localhost:8083/api/auth/register-step1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        setOtpExpiresAt(data.expiresAt);
+        setShowOTPModal(true);
+        setStep(2);
+      } else {
+        setError(data.message || "Failed to send verification code.");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP and complete registration
+  const handleVerifyOTP = async (otpCode) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/verify-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: formData.email, code: otpCode }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || "Registration failed. Please try again.");
+        throw new Error(errorData || "Email verification failed.");
       }
 
       const data = await response.json();
@@ -52,14 +92,19 @@ const Register = () => {
       if (data.token) {
         const { token, email, name, roles } = data;
         login({ email, name, roles }, token);
+        setEmailVerified(true);
+        setShowOTPModal(false);
+        navigate("/");
       }
-
-      navigate("/");
     } catch (err) {
-      setError(err.message || "Something went wrong during registration.");
-    } finally {
+      setError(err.message || "Failed to verify email. Please try again.");
       setLoading(false);
+      throw err;
     }
+  };
+
+  const handleCloseOTPModal = () => {
+    setShowOTPModal(false);
   };
 
   return (
@@ -148,7 +193,7 @@ const Register = () => {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             {/* Full Name */}
             <div>
               <label className="block mb-1 font-medium">Full Name</label>
@@ -166,15 +211,35 @@ const Register = () => {
             {/* Email */}
             <div>
               <label className="block mb-1 font-medium">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="abc@example.com"
-                required
-                className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="abc@example.com"
+                  required
+                  disabled={emailVerified}
+                  className="flex-1 h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none disabled:bg-gray-100"
+                />
+                {!emailVerified && (
+                  <button
+                    type="button"
+                    onClick={handleVerifyEmail}
+                    disabled={loading || !formData.email || emailVerified}
+                    className="px-4 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {loading ? "Sending..." : "Verify Email"}
+                  </button>
+                )}
+                {emailVerified && (
+                  <div className="h-12 px-4 flex items-center bg-green-50 border border-green-600 rounded-xl">
+                    <span className="material-symbols-outlined text-green-600">
+                      check_circle
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Phone */}
@@ -281,12 +346,19 @@ const Register = () => {
             {/* Create Account Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !emailVerified}
               className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
+
+          {/* Note */}
+          {!emailVerified && (
+            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm">
+              Please verify your email first by clicking the "Verify Email" button.
+            </div>
+          )}
 
           {/* Footer */}
           <div className="pt-6 text-center">
@@ -316,6 +388,16 @@ const Register = () => {
           </p>
         </div>
       </section>
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        email={formData.email}
+        onClose={handleCloseOTPModal}
+        onVerifySuccess={handleVerifyOTP}
+        isLoading={loading}
+        otpExpiresAt={otpExpiresAt}
+      />
     </main>
   );
 };

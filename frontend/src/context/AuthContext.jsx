@@ -71,6 +71,193 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/login";
   };
 
+  /**
+   * Step 1: Register user and request email verification OTP
+   */
+  const registerStep1 = async (userData) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/register-step1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Step 2: Verify email OTP and complete registration
+   */
+  const verifyEmailAndRegister = async (email, otp) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/verify-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, code: otp }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || "Email verification failed");
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        login(data, data.token);
+      }
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Step 1: Login - Send OTP to email after password verification
+   */
+  const loginStep1 = async (email, password) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/login-step1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Step 2: Login - Verify OTP and complete login
+   */
+  const loginStep2 = async (email, otp) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/login-step2",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, code: otp }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || "OTP verification failed");
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        login(data, data.token);
+      }
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Request password reset - Send OTP to email
+   */
+  const requestPasswordReset = async (email) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/forgot-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Verify reset OTP
+   */
+  const verifyResetOTP = async (email, otp) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/verify-reset-otp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, code: otp }),
+        }
+      );
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
+   * Reset password
+   */
+  const resetPassword = async (email, otp, newPassword, confirmPassword) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/reset-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp,
+            newPassword,
+            confirmPassword,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || "Password reset failed");
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   // ✅ Fix: Use the reactive 'token' state here
   const isAuthenticated = !!token;
 
@@ -87,6 +274,13 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateCurrentMode,
         loadCurrentMode,
+        registerStep1,
+        verifyEmailAndRegister,
+        loginStep1,
+        loginStep2,
+        requestPasswordReset,
+        verifyResetOTP,
+        resetPassword,
       }}
     >
       {children}
