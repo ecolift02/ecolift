@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import OTPModal from "../../components/OTP/OTPModal";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,6 +16,20 @@ const Register = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // 1. Change error state to an object to track each input field individually
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    global: "",
+  });
+
+  // Regex Patterns
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const PHONE_REGEX = /^\d{10}$/; // Exactly 10 digits
+  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/; // 8+ chars & 1 uppercase & 1 symbol
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,8 +64,7 @@ const Register = () => {
     }));
   };
 
-  // Send OTP for email verification
-  const handleVerifyEmail = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // 3. Final validation check before submitting
@@ -67,55 +79,17 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:8083/api/auth/register-step1",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
+      const response = await fetch("http://localhost:8083/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data.success) {
-        setOtpExpiresAt(data.expiresAt);
-        setShowOTPModal(true);
-        setStep(2);
-      } else {
-        setError(data.message || "Failed to send verification code.");
-      }
-    } catch (err) {
-      setError(
-        err.message || "Failed to send verification code. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Verify OTP and complete registration
-  const handleVerifyOTP = async (otpCode) => {
-    setError("");
-    setLoading(true);
-
-    try {
-      const response = await fetch(
-        "http://localhost:8083/api/auth/verify-email",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email: formData.email, code: otpCode }),
-        },
-      );
+        body: JSON.stringify(formData),
+      });
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || "Email verification failed.");
+        throw new Error(errorData || "Registration failed. Please try again.");
       }
 
       const data = await response.json();
@@ -123,20 +97,17 @@ const Register = () => {
       if (data.token) {
         const { token, email, name, roles } = data;
         login({ email, name, roles }, token);
-        setEmailVerified(true);
-        setShowOTPModal(false);
-        navigate("/");
       }
+
+      navigate("/");
     } catch (err) {
-      setError(err.message || "Something went wrong during registration.");
+      setErrors((prev) => ({
+        ...prev,
+        global: err.message || "Something went wrong during registration.",
+      }));
     } finally {
       setLoading(false);
-      throw err;
     }
-  };
-
-  const handleCloseOTPModal = () => {
-    setShowOTPModal(false);
   };
 
   return (
@@ -225,7 +196,7 @@ const Register = () => {
           )}
 
           {/* Form */}
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
             <div>
               <label className="block mb-1 font-medium">Full Name</label>
@@ -256,8 +227,14 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="abc@example.com"
                 required
-                className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
+                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                  errors.email ? "border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {/* Individual Field Error */}
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Phone */}
@@ -382,20 +359,12 @@ const Register = () => {
             {/* Create Account Button */}
             <button
               type="submit"
-              disabled={loading || !emailVerified}
+              disabled={loading}
               className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
-
-          {/* Note */}
-          {!emailVerified && (
-            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm">
-              Please verify your email first by clicking the "Verify Email"
-              button.
-            </div>
-          )}
 
           {/* Footer */}
           <div className="pt-6 text-center">
@@ -425,16 +394,6 @@ const Register = () => {
           </p>
         </div>
       </section>
-
-      {/* OTP Modal */}
-      <OTPModal
-        isOpen={showOTPModal}
-        email={formData.email}
-        onClose={handleCloseOTPModal}
-        onVerifySuccess={handleVerifyOTP}
-        isLoading={loading}
-        otpExpiresAt={otpExpiresAt}
-      />
     </main>
   );
 };

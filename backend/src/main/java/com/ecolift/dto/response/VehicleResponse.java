@@ -20,7 +20,6 @@ public class VehicleResponse {
     private Integer manufacturingYear;
     private String registrationNumber;
     private String status;
-    private Boolean isVerified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
