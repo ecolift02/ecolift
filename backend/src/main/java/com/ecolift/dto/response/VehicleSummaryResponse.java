@@ -15,5 +15,4 @@ public class VehicleSummaryResponse {
     private Integer seatCapacity;
     private String fuelType;
     private String status;
-    private Boolean isVerified;
 }

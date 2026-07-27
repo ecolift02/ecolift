@@ -21,7 +21,6 @@ public class VehicleMapper {
                 .manufacturingYear(vehicle.getManufacturingYear())
                 .registrationNumber(vehicle.getRegistrationNumber())
                 .status(vehicle.getStatus())
-                .isVerified(vehicle.getIsVerified())
                 .createdAt(vehicle.getCreatedAt())
                 .updatedAt(vehicle.getUpdatedAt())
                 .build();
@@ -38,7 +37,6 @@ public class VehicleMapper {
                 .seatCapacity(vehicle.getCapacity())
                 .fuelType(vehicle.getFuelType())
                 .status(vehicle.getStatus())
-                .isVerified(vehicle.getIsVerified())
                 .build();
     }
 
