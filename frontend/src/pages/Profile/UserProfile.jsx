@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 // Shared Components
 import Navbar from "../../components/Navbar/Navbar";
 import Sidebar from "../../components/Sidebar/Sidebar";
@@ -7,6 +8,12 @@ import Footer from "../../components/Footer/Footer";
 
 const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("passenger");
+  const { user } = useAuth();
+
+  // Use actual user name from auth context, fallback to default
+  const displayName = user?.name || "User";
+  const displayEmail = user?.email || "user@example.com";
+  const displayPhone = user?.phone || "Not provided";
 
   return (
     <>
@@ -58,13 +65,14 @@ const UserProfile = () => {
 
               <div className="flex-1 pb-2">
                 <h1 className="text-4xl font-bold text-on-surface">
-                  Alex Johnson
+                  {displayName}
                 </h1>
 
                 <p className="text-on-surface-variant mt-2 max-w-3xl">
-                  Commuter committed to reducing my carbon footprint one shared
-                  ride at a time. Professional software architect and weekend
-                  nature photographer.
+                  Email: <strong>{displayEmail}</strong>
+                </p>
+                <p className="text-on-surface-variant mt-1 max-w-3xl">
+                  Phone: <strong>{displayPhone}</strong>
                 </p>
               </div>
 
