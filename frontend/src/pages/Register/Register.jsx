@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import OTPModal from "../../components/OTP/OTPModal";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,81 +16,75 @@ const Register = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // 1. Change error state to an object to track each input field individually
-  const [errors, setErrors] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    global: "",
-  });
-
-  // Regex Patterns
-  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const PHONE_REGEX = /^\d{10}$/; // Exactly 10 digits
-  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/; // 8+ chars & 1 uppercase & 1 symbol
+  const [step, setStep] = useState(1); // 1: Form, 2: OTP Verification
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
+  const [showOTPModal, setShowOTPModal] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-
-    // 2. Real-time validation for each field
-    let fieldError = "";
-
-    // Only show format errors if the user has typed something
-    // (HTML 'required' attribute handles empty fields)
-    if (value !== "") {
-      if (name === "name" && value.trim().length < 2) {
-        fieldError = "Name must be at least 2 characters";
-      } else if (name === "email" && !EMAIL_REGEX.test(value)) {
-        fieldError = "Invalid email address format";
-      } else if (name === "phone" && !PHONE_REGEX.test(value)) {
-        fieldError = "Phone number must be exactly 10 digits";
-      } else if (name === "password" && !PASSWORD_REGEX.test(value)) {
-        fieldError = "Must be at least 8 characters and include a symbol";
-      }
-    }
-
-    // Update the specific field's error in the state object
-    setErrors((prev) => ({
-      ...prev,
-      [name]: fieldError,
-      global: "", // Clear global API errors when user types
-    }));
   };
 
-  const handleSubmit = async (e) => {
+  // Send OTP for email verification
+  const handleVerifyEmail = async (e) => {
     e.preventDefault();
-
-    // 3. Final validation check before submitting
-    if (errors.name || errors.email || errors.phone || errors.password) {
-      setErrors((prev) => ({
-        ...prev,
-        global: "Please fix the errors above before submitting.",
-      }));
-      return;
-    }
-
+    setError("");
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8083/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "http://localhost:8083/api/auth/register-step1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        setOtpExpiresAt(data.expiresAt);
+        setShowOTPModal(true);
+        setStep(2);
+      } else {
+        setError(data.message || "Failed to send verification code.");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP and complete registration
+  const handleVerifyOTP = async (otpCode) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/verify-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: formData.email, code: otpCode }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || "Registration failed. Please try again.");
+        throw new Error(errorData || "Email verification failed.");
       }
 
       const data = await response.json();
@@ -97,22 +92,24 @@ const Register = () => {
       if (data.token) {
         const { token, email, name, roles } = data;
         login({ email, name, roles }, token);
+        setEmailVerified(true);
+        setShowOTPModal(false);
+        navigate("/");
       }
-
-      navigate("/");
     } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        global: err.message || "Something went wrong during registration.",
-      }));
-    } finally {
+      setError(err.message || "Failed to verify email. Please try again.");
       setLoading(false);
+      throw err;
     }
+  };
+
+  const handleCloseOTPModal = () => {
+    setShowOTPModal(false);
   };
 
   return (
     <main className="flex min-h-screen w-full relative">
-      {/* Go to Home Button */}
+      {/* Go to Home Button - Fixed to Top Right Corner */}
       <div className="absolute top-6 right-6 z-50">
         <Link
           to="/"
@@ -188,15 +185,15 @@ const Register = () => {
             </p>
           </div>
 
-          {/* Global API Error Message Display */}
-          {errors.global && (
+          {/* Error Message Display */}
+          {error && (
             <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-              {errors.global}
+              {error}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             {/* Full Name */}
             <div>
               <label className="block mb-1 font-medium">Full Name</label>
@@ -205,36 +202,44 @@ const Register = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Your Name"
+                placeholder="your name"
                 required
-                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
-                  errors.name ? "border-red-500 focus:ring-red-500" : ""
-                }`}
+                className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
               />
-              {/* Individual Field Error */}
-              {errors.name && (
-                <p className="text-red-500 text-xs mt-1 ml-1">{errors.name}</p>
-              )}
             </div>
 
             {/* Email */}
             <div>
               <label className="block mb-1 font-medium">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="abc@example.com"
-                required
-                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
-                  errors.email ? "border-red-500 focus:ring-red-500" : ""
-                }`}
-              />
-              {/* Individual Field Error */}
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>
-              )}
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="abc@example.com"
+                  required
+                  disabled={emailVerified}
+                  className="flex-1 h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none disabled:bg-gray-100"
+                />
+                {!emailVerified && (
+                  <button
+                    type="button"
+                    onClick={handleVerifyEmail}
+                    disabled={loading || !formData.email || emailVerified}
+                    className="px-4 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {loading ? "Sending..." : "Verify Email"}
+                  </button>
+                )}
+                {emailVerified && (
+                  <div className="h-12 px-4 flex items-center bg-green-50 border border-green-600 rounded-xl">
+                    <span className="material-symbols-outlined text-green-600">
+                      check_circle
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Phone */}
@@ -247,21 +252,13 @@ const Register = () => {
                 <input
                   type="tel"
                   name="phone"
-                  minLength="10"
-                  maxLength="10"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="9876543210"
                   required
-                  className={`w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
-                    errors.phone ? "border-red-500 focus:ring-red-500" : ""
-                  }`}
+                  className="w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
                 />
               </div>
-              {/* Individual Field Error */}
-              {errors.phone && (
-                <p className="text-red-500 text-xs mt-1 ml-1">{errors.phone}</p>
-              )}
             </div>
 
             {/* Role Selection */}
@@ -329,9 +326,7 @@ const Register = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
-                  className={`w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
-                    errors.password ? "border-red-500 focus:ring-red-500" : ""
-                  }`}
+                  className="w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
                 />
                 <button
                   type="button"
@@ -343,28 +338,27 @@ const Register = () => {
                   </span>
                 </button>
               </div>
-
-              {/* Display red error if invalid, otherwise show standard gray hint */}
-              {errors.password ? (
-                <p className="text-red-500 text-xs mt-1 ml-1">
-                  {errors.password}
-                </p>
-              ) : (
-                <p className="text-sm text-gray-500 mt-1">
-                  At least 8 characters with a UpperCase and a symbol.
-                </p>
-              )}
+              <p className="text-sm text-gray-500 mt-1">
+                At least 8 characters with a symbol.
+              </p>
             </div>
 
             {/* Create Account Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !emailVerified}
               className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
+
+          {/* Note */}
+          {!emailVerified && (
+            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm">
+              Please verify your email first by clicking the "Verify Email" button.
+            </div>
+          )}
 
           {/* Footer */}
           <div className="pt-6 text-center">
@@ -394,6 +388,16 @@ const Register = () => {
           </p>
         </div>
       </section>
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        email={formData.email}
+        onClose={handleCloseOTPModal}
+        onVerifySuccess={handleVerifyOTP}
+        isLoading={loading}
+        otpExpiresAt={otpExpiresAt}
+      />
     </main>
   );
 };
