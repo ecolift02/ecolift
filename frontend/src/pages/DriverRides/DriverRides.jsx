@@ -194,13 +194,22 @@ const DriverRides = () => {
                   Manage the rides you've offered as a driver
                 </p>
               </div>
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-md transition hover:bg-emerald-50 active:scale-[0.98]"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Publish New Ride
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => navigate("/driver/vehicles")}
+                  className="flex items-center gap-2 rounded-xl border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
+                >
+                  <Car className="h-4 w-4" />
+                  My Vehicles
+                </button>
+                <button
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-md transition hover:bg-emerald-50 active:scale-[0.98]"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Publish New Ride
+                </button>
+              </div>
             </div>
 
             {/* Quick stats */}
