@@ -1,30 +1,20 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, Users, Search } from "lucide-react";
-import SearchLocation from "./SearchLocation";
-import ViewMap from "../Map/ViewMap";
+import { MapPin, CalendarDays, Users, Search } from "lucide-react";
 
 const PassengerView = () => {
   const navigate = useNavigate();
   const [searchData, setSearchData] = useState({
-    from: null, // Initialized as null instead of "" so objects map cleanly
-    to: null,
+    from: "",
+    to: "",
     date: "",
     passengers: "1",
   });
-  const [showMap, setShowMap] = useState(false);
+
   const handleChange = (e) => {
     setSearchData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleLocationChange = (name, value) => {
-    // This 'value' will now be the full object from SearchLocation!
-    setSearchData((prev) => ({
-      ...prev,
-      [name]: value,
     }));
   };
 
@@ -33,19 +23,12 @@ const PassengerView = () => {
 
     const { from, to, date, passengers } = searchData;
 
-    // Safely extract the string names whether they typed a string or selected an object
-    const fromString =
-      typeof from === "object" && from !== null ? from.display_name : from;
-    const toString =
-      typeof to === "object" && to !== null ? to.display_name : to;
-
-    if (!fromString || !toString || !date) {
+    if (!from || !to || !date) {
       return;
     }
 
-    // Navigate using the string names
     navigate(
-      `/search?from=${encodeURIComponent(fromString)}&to=${encodeURIComponent(toString)}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(passengers)}`,
+      `/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(passengers)}`,
     );
   };
 
@@ -53,24 +36,38 @@ const PassengerView = () => {
     <div className="bg-white rounded-2xl shadow-2xl p-6">
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <SearchLocation
-            placeholder="From"
-            value={searchData.from}
-            onChange={(value) => handleLocationChange("from", value)}
-            onBlur={() => setShowMap(true)} // Show map when user leaves the "From" input
-          />
+          <div className="relative">
+            <MapPin className="absolute left-3 top-3 text-gray-500" size={20} />
 
-          <SearchLocation
-            placeholder="To"
-            value={searchData.to}
-            onChange={(value) => handleLocationChange("to", value)}
-          />
+            <input
+              type="text"
+              name="from"
+              value={searchData.from}
+              onChange={handleChange}
+              placeholder="From"
+              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
+            />
+          </div>
+
+          <div className="relative">
+            <MapPin className="absolute left-3 top-3 text-gray-500" size={20} />
+
+            <input
+              type="text"
+              name="to"
+              value={searchData.to}
+              onChange={handleChange}
+              placeholder="To"
+              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
+            />
+          </div>
 
           <div className="relative">
             <CalendarDays
               className="absolute left-3 top-3 text-gray-500"
               size={20}
             />
+
             <input
               type="date"
               name="date"
@@ -82,6 +79,7 @@ const PassengerView = () => {
 
           <div className="relative">
             <Users className="absolute left-3 top-3 text-gray-500" size={20} />
+
             <select
               name="passengers"
               value={searchData.passengers}
@@ -104,21 +102,6 @@ const PassengerView = () => {
           </button>
         </div>
       </form>
-
-      {/* 
-        SMOOTH SLIDE DOWN WRAPPER 
-        Transitions max-height from 0 to 500px, creating a smooth vertical slide.
-      */}
-      <div
-        className={`transition-all duration-900 ease-in-out overflow-hidden ${
-          showMap ? "max-h-[500px] mt-6 opacity-100" : "max-h-0 mt-0 opacity-0"
-        }`}
-      >
-        <div className="h-96 w-full rounded-2xl overflow-hidden shadow-inner border border-slate-100">
-          {/* We still conditionally render ViewMap inside so it doesn't run API calls when hidden */}
-          {showMap && <ViewMap from={searchData.from} to={searchData.to} />}
-        </div>
-      </div>
     </div>
   );
 };
