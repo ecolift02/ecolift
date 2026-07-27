@@ -4,8 +4,6 @@ import { useAuth } from "../../context/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
-
-  // 1. You must extract the login function from useAuth!
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -17,20 +15,67 @@ const Register = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 1. Change error state to an object to track each input field individually
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    global: "",
+  });
+
+  // Regex Patterns
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const PHONE_REGEX = /^\d{10}$/; // Exactly 10 digits
+  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/; // 8+ chars & 1 uppercase & 1 symbol
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+
+    // 2. Real-time validation for each field
+    let fieldError = "";
+
+    // Only show format errors if the user has typed something
+    // (HTML 'required' attribute handles empty fields)
+    if (value !== "") {
+      if (name === "name" && value.trim().length < 2) {
+        fieldError = "Name must be at least 2 characters";
+      } else if (name === "email" && !EMAIL_REGEX.test(value)) {
+        fieldError = "Invalid email address format";
+      } else if (name === "phone" && !PHONE_REGEX.test(value)) {
+        fieldError = "Phone number must be exactly 10 digits";
+      } else if (name === "password" && !PASSWORD_REGEX.test(value)) {
+        fieldError = "Must be at least 8 characters and include a symbol";
+      }
+    }
+
+    // Update the specific field's error in the state object
+    setErrors((prev) => ({
+      ...prev,
+      [name]: fieldError,
+      global: "", // Clear global API errors when user types
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+
+    // 3. Final validation check before submitting
+    if (errors.name || errors.email || errors.phone || errors.password) {
+      setErrors((prev) => ({
+        ...prev,
+        global: "Please fix the errors above before submitting.",
+      }));
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -56,7 +101,10 @@ const Register = () => {
 
       navigate("/");
     } catch (err) {
-      setError(err.message || "Something went wrong during registration.");
+      setErrors((prev) => ({
+        ...prev,
+        global: err.message || "Something went wrong during registration.",
+      }));
     } finally {
       setLoading(false);
     }
@@ -64,7 +112,7 @@ const Register = () => {
 
   return (
     <main className="flex min-h-screen w-full relative">
-      {/* Go to Home Button - Fixed to Top Right Corner */}
+      {/* Go to Home Button */}
       <div className="absolute top-6 right-6 z-50">
         <Link
           to="/"
@@ -140,10 +188,10 @@ const Register = () => {
             </p>
           </div>
 
-          {/* Error Message Display */}
-          {error && (
+          {/* Global API Error Message Display */}
+          {errors.global && (
             <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-              {error}
+              {errors.global}
             </div>
           )}
 
@@ -159,8 +207,14 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="Your Name"
                 required
-                className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
+                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                  errors.name ? "border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {/* Individual Field Error */}
+              {errors.name && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{errors.name}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -173,8 +227,14 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="abc@example.com"
                 required
-                className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
+                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                  errors.email ? "border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {/* Individual Field Error */}
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Phone */}
@@ -187,15 +247,21 @@ const Register = () => {
                 <input
                   type="tel"
                   name="phone"
-                  minlength="10"
-                  maxlength="10"
+                  minLength="10"
+                  maxLength="10"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="9876543210"
                   required
-                  className="w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
+                  className={`w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    errors.phone ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                 />
               </div>
+              {/* Individual Field Error */}
+              {errors.phone && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{errors.phone}</p>
+              )}
             </div>
 
             {/* Role Selection */}
@@ -263,7 +329,9 @@ const Register = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
-                  className="w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none"
+                  className={`w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    errors.password ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                 />
                 <button
                   type="button"
@@ -275,9 +343,17 @@ const Register = () => {
                   </span>
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                At least 8 characters with a symbol.
-              </p>
+
+              {/* Display red error if invalid, otherwise show standard gray hint */}
+              {errors.password ? (
+                <p className="text-red-500 text-xs mt-1 ml-1">
+                  {errors.password}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-1">
+                  At least 8 characters with a UpperCase and a symbol.
+                </p>
+              )}
             </div>
 
             {/* Create Account Button */}
