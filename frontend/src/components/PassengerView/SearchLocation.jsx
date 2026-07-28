@@ -13,6 +13,7 @@ export default function SearchLocation({
   const timeoutRef = useRef(null);
   const suppressNextQueryRef = useRef(false);
 
+  // Sync state if parent changes it (handles both strings and full objects)
   useEffect(() => {
     if (value && typeof value === "object" && value.display_name) {
       setQuery(value.display_name);
@@ -64,12 +65,14 @@ export default function SearchLocation({
 
     setQuery(item.display_name);
     setResults([]);
+
+    // THIS IS THE KEY FIX: Pass the full object up to the parent
     onChange(item);
   };
 
   const handleInputChange = (e) => {
     setQuery(e.target.value);
-    onChange(e.target.value);
+    onChange(e.target.value); // Fallback: Pass string while they type
   };
 
   return (
@@ -81,6 +84,11 @@ export default function SearchLocation({
         value={query}
         onChange={handleInputChange}
         onBlur={onBlur}
+        onFocus={() => {
+          if (query.length >= 3) {
+            setResults((prev) => prev);
+          }
+        }}
         autoComplete="off"
         placeholder={placeholder}
         className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"

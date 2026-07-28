@@ -9,6 +9,12 @@ import Footer from "../../components/Footer/Footer";
 const UserProfile = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("passenger");
+  const { user } = useAuth();
+
+  // Use actual user name from auth context, fallback to default
+  const displayName = user?.name || "User";
+  const displayEmail = user?.email || "user@example.com";
+  const displayPhone = user?.phone || "Not provided";
 
   const displayName = user?.name || "User";
   const displayEmail = user?.email || "user@example.com";

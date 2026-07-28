@@ -21,12 +21,13 @@ function createIcon(color) {
       <circle cx="12" cy="10" r="3" fill="white" stroke="none"></circle>
     </svg>
   `;
+
   return L.divIcon({
-    className: "bg-transparent",
+    className: "bg-transparent", // Clears default Leaflet styling
     html: pinSVG,
     iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
+    iconAnchor: [18, 36], // Points the exact bottom tip of the pin to the location
+    popupAnchor: [0, -36], // Opens the popup exactly above the pin
   });
 }
 
@@ -38,8 +39,10 @@ function FitBounds({ from, to }) {
       [Number(from.lat), Number(from.lon)],
       [Number(to.lat), Number(to.lon)],
     ];
+
     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
   }, [from, to, map]);
+
   return null;
 }
 
@@ -66,12 +69,19 @@ export default function ViewMap({ from, to }) {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
+          console.log(
+            "User's current location:",
+            coords.latitude,
+            coords.longitude,
+          );
           setInitialView({
             center: [coords.latitude, coords.longitude],
             zoom: 12,
           });
         },
-        () => {},
+        () => {
+          setInitialView(getInitialView());
+        },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
       );
     }
@@ -114,9 +124,16 @@ export default function ViewMap({ from, to }) {
       active = false;
     };
   }, [from, to]);
-
+  console.log(
+    "ViewMap Rendered with from:",
+    from,
+    "to:",
+    to,
+    "routeCoords:",
+    routeCoords,
+  );
   return (
-    <div className="relative h-full w-full z-10">
+    <div className="relative h-130 w-full z-10">
       <div className="absolute left-4 top-4 z-10 rounded-2xl border border-slate-700 bg-slate-900/90 px-3 py-2 text-sm text-slate-200 shadow-lg backdrop-blur">
         {routeStatus}
       </div>

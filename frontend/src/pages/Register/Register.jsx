@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import OTPModal from "../../components/OTP/OTPModal";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,6 +19,10 @@ const Register = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1: Form, 2: OTP Verification
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
+  const [showOTPModal, setShowOTPModal] = useState(false);
 
   // 2. Change error state to an object to track each input field individually
   const [errors, setErrors] = useState({
@@ -65,7 +70,8 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  // Send OTP for email verification
+  const handleVerifyEmail = async (e) => {
     e.preventDefault();
 
     // Final validation check before submitting
@@ -80,17 +86,53 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8083/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "http://localhost:8083/api/auth/register-step1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        setOtpExpiresAt(data.expiresAt);
+        setShowOTPModal(true);
+        setStep(2);
+      } else {
+        setError(data.message || "Failed to send verification code.");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP and complete registration
+  const handleVerifyOTP = async (otpCode) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8083/api/auth/verify-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: formData.email, code: otpCode }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || "Registration failed. Please try again.");
+        throw new Error(errorData || "Email verification failed.");
       }
 
       const data = await response.json();
@@ -98,9 +140,10 @@ const Register = () => {
       if (data.token) {
         const { token, email, name, roles } = data;
         login({ email, name, roles }, token);
+        setEmailVerified(true);
+        setShowOTPModal(false);
+        navigate("/");
       }
-
-      navigate("/");
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
@@ -108,7 +151,12 @@ const Register = () => {
       }));
     } finally {
       setLoading(false);
+      throw err;
     }
+  };
+
+  const handleCloseOTPModal = () => {
+    setShowOTPModal(false);
   };
 
   return (
@@ -197,7 +245,7 @@ const Register = () => {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             {/* Full Name */}
             <div>
               <label className="block mb-1 font-medium">Full Name</label>
@@ -357,12 +405,14 @@ const Register = () => {
             {/* Create Account Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !emailVerified}
               className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
+
+        
 
           {/* Footer */}
           <div className="pt-6 text-center">
@@ -392,6 +442,8 @@ const Register = () => {
           </p>
         </div>
       </section>
+
+   
     </main>
   );
 };

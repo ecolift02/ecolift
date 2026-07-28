@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
-            MethodArgumentNotValidException ex, 
+            MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
         Map<String, String> errors = new HashMap<>();
@@ -32,11 +32,13 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
+        String message = errors.values().stream().findFirst().orElse("Request payload failed validation checks");
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Error")
-                .message("Request payload failed validation checks")
+                .message(message)
                 .path(request.getRequestURI())
                 .validationErrors(errors)
                 .build();
@@ -170,19 +172,16 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
-            Exception ex, 
+            Exception ex,
             HttpServletRequest request
     ) {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
-                .message("An unexpected error occurred. Please contact support.")
+                .message(ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred")
                 .path(request.getRequestURI())
                 .build();
-
-        // Optional: Log the actual exception stack trace here using SLF4J
-        System.err.println("Unhandled Exception: " + ex.getMessage());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
