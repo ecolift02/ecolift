@@ -1,25 +1,36 @@
 package com.ecolift.controller;
 
-import com.ecolift.dto.request.RidePublishRequest;
-import com.ecolift.dto.request.RideUpdateRequest;
-import com.ecolift.repository.LocationRepository;
-import com.ecolift.dto.response.RideResponse;
-import com.ecolift.entity.Ride;
-import com.ecolift.entity.Location;
-import com.ecolift.entity.User;
-import com.ecolift.repository.UserRepository;
-import com.ecolift.service.RideService;
-import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.ecolift.dto.request.RidePublishRequest;
+import com.ecolift.dto.request.RideUpdateRequest;
+import com.ecolift.dto.response.RideResponse;
+import com.ecolift.entity.Location;
+import com.ecolift.entity.Ride;
+import com.ecolift.entity.User;
+import com.ecolift.repository.LocationRepository;
+import com.ecolift.repository.UserRepository;
+import com.ecolift.service.RideService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/rides")
@@ -152,6 +163,20 @@ public class RideController {
     /**
      * Get all rides published by the currently logged-in driver.
      */
+//    @GetMapping("/my")
+//    @PreAuthorize("hasRole('DRIVER')")
+//    public ResponseEntity<List<RideResponse>> getMyRides(Authentication authentication) {
+//        String driverEmail = authentication.getName();
+//        User driver = userRepository.findByEmail(driverEmail)
+//                .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+//
+//        List<RideResponse> responses = rideService.getDriverRides(driver.getId())
+//                .stream()
+//                .map(this::mapToResponse)
+//                .collect(Collectors.toList());
+//
+//        return ResponseEntity.ok(responses);
+//    }
     @GetMapping("/my")
     @PreAuthorize("hasRole('DRIVER')")
     public ResponseEntity<List<RideResponse>> getMyRides(Authentication authentication) {
@@ -161,6 +186,7 @@ public class RideController {
 
         List<RideResponse> responses = rideService.getDriverRides(driver.getId())
                 .stream()
+                .sorted(Comparator.comparing(Ride::getDepartureTime).reversed())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
 
