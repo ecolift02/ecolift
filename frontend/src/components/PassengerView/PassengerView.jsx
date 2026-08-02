@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Users, Search } from "lucide-react";
 import SearchLocation from "./SearchLocation";
 import ViewMap from "../Map/ViewMap";
+import { CalendarDays, Users, Search } from "lucide-react";
+import SearchLocation from "./SearchLocation";
+import ViewMap from "../Map/ViewMap";
 
 const PassengerView = () => {
   const navigate = useNavigate();
@@ -96,6 +99,7 @@ const PassengerView = () => {
     sessionStorage.setItem("rideSearchRequest", JSON.stringify(searchRequest));
 
     navigate(
+      `/search?from=${encodeURIComponent(fromString)}&to=${encodeURIComponent(toString)}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(passengers)}`,
       `/search?from=${encodeURIComponent(fromString)}&to=${encodeURIComponent(toString)}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(passengers)}`,
     );
   };

@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setCurrentMode("PASSENGER");
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   // Re-issues a fresh token + roles for the current user. Call this after any

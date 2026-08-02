@@ -21,7 +21,6 @@ public class VehicleMapper {
                 .manufacturingYear(vehicle.getManufacturingYear())
                 .registrationNumber(vehicle.getRegistrationNumber())
                 .status(vehicle.getStatus())
-                .isVerified(vehicle.getIsVerified())
                 .createdAt(vehicle.getCreatedAt())
                 .updatedAt(vehicle.getUpdatedAt())
                 .verificationStatus(vehicle.getVerificationStatus())

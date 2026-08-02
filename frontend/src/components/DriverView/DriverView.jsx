@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Clock,
@@ -8,8 +8,6 @@ import {
   Plus,
   ArrowLeft,
   IndianRupee,
-  AlertCircle,
-  X,
 } from "lucide-react";
 import api from "../../api/axiosConfig";
 import { getRoute } from "../../api/mapService";
@@ -40,12 +38,10 @@ const DriverView = () => {
   // Flow State
   const [step, setStep] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [activeVehicles, setActiveVehicles] = useState([]);
-  const [vehicleLoading, setVehicleLoading] = useState(true);
-  const [vehicleError, setVehicleError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setRideDetails((prev) => ({ ...prev, [name]: value }));
 
     // Clear error for the field when the user starts typing
@@ -69,7 +65,7 @@ const DriverView = () => {
   // Calculate minimum allowed time (2 hours from now)
   const getMinDateTime = () => {
     const date = new Date();
-    date.setHours(date.getHours() + 2);
+    date.setHours(date.getHours() + 1);
 
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -505,20 +501,20 @@ const DriverView = () => {
                 onClick={() => setSelectedVehicle(vehicle)}
                 className={`p-4 rounded-xl cursor-pointer border-2 transition-all ${
                   selectedVehicle?.id === vehicle.id
-                    ? "border-emerald-500 bg-emerald-50"
+                    ? "border-emerald-500 bg-emerald-50 "
                     : "border-slate-200 hover:border-emerald-300"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center ">
                     <Car className="text-emerald-700 h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-slate-800">
-                      {vehicle.vehicleName}
+                    <p className="font-semibold text-sm text-slate-200">
+                      {vehicle.make} {vehicle.model}
                     </p>
                     <p className="text-xs text-slate-500 font-mono">
-                      {vehicle.vehicleNumber}
+                      {vehicle.plate}
                     </p>
                   </div>
                 </div>
@@ -533,9 +529,10 @@ const DriverView = () => {
                 })
               }
               className="p-4 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group min-h-[88px]"
+              className="p-4 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group min-h-[88px]"
             >
               <Plus className="text-slate-400 group-hover:text-emerald-600 transition" />
-              <span className="text-sm font-medium text-slate-500 group-hover:text-emerald-700 transition">
+              <span className="text-sm font-medium text-slate-200 group-hover:text-emerald-700 transition">
                 Add new vehicle
               </span>
             </button>

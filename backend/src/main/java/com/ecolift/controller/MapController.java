@@ -32,7 +32,6 @@ public class MapController {
         if (request.getStart() == null || request.getEnd() == null ||
             request.getStart().getLat() == null || request.getStart().getLon() == null ||
             request.getEnd().getLat() == null || request.getEnd().getLon() == null) {
-
             return ResponseEntity.badRequest().body(Map.of("message", "Start and end coordinates are required"));
         }
 

@@ -40,6 +40,7 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -162,6 +163,10 @@ const Register = () => {
         ...prev,
         global: err.message || "Something went wrong during registration.",
       }));
+      setErrors((prev) => ({
+        ...prev,
+        global: err.message || "Something went wrong during registration.",
+      }));
     } finally {
       setLoading(false);
     }
@@ -247,6 +252,7 @@ const Register = () => {
           {errors.global && (
             <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
               {errors.global}
+              {errors.global}
             </div>
           )}
 
@@ -301,7 +307,11 @@ const Register = () => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Your Name"
+                placeholder="Your Name"
                 required
+                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                  errors.name ? "border-red-500 focus:ring-red-500" : ""
+                }`}
                 className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
                   errors.name ? "border-red-500 focus:ring-red-500" : ""
                 }`}
@@ -324,6 +334,9 @@ const Register = () => {
                 className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
                   errors.email ? "border-red-500 focus:ring-red-500" : ""
                 }`}
+                className={`w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                  errors.email ? "border-red-500 focus:ring-red-500" : ""
+                }`}
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>
@@ -342,10 +355,15 @@ const Register = () => {
                   name="phone"
                   minLength="10"
                   maxLength="10"
+                  minLength="10"
+                  maxLength="10"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="9876543210"
                   required
+                  className={`w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    errors.phone ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                   className={`w-full h-12 pl-12 pr-4 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
                     errors.phone ? "border-red-500 focus:ring-red-500" : ""
                   }`}
@@ -421,6 +439,9 @@ const Register = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
+                  className={`w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    errors.password ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                   className={`w-full h-12 px-4 pr-12 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition ${
                     errors.password ? "border-red-500 focus:ring-red-500" : ""
                   }`}
