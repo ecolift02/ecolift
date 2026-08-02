@@ -32,8 +32,16 @@ const SearchResults = () => {
     const date = searchParams.get("date");
     const seats = searchParams.get("seats") || "1";
 
-    if (!source || !destination || !date) {
-      setError("Please provide source, destination, and date.");
+    const sessionRequest = (() => {
+      try {
+        return JSON.parse(window.sessionStorage.getItem("rideSearchRequest"));
+      } catch (err) {
+        return null;
+      }
+    })();
+
+    if (!sessionRequest || !sessionRequest.polyline) {
+      setError("Search data could not be loaded. Please search again.");
       setLoading(false);
       setRides([]);
       return;
@@ -45,13 +53,18 @@ const SearchResults = () => {
       setRides([]);
 
       try {
-        const url = `http://localhost:8083/api/rides/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${encodeURIComponent(date)}T00:00:00&seats=${encodeURIComponent(seats)}`;
+        const body = {
+          polyline: sessionRequest.polyline,
+          departureTime: sessionRequest.departureTime || `${date}T00:00:00`,
+          seats: sessionRequest.seats || Number(seats),
+        };
 
-        const response = await fetch(url, {
-          method: "GET",
+        const response = await fetch("http://localhost:8083/api/rides/search", {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify(body),
         });
 
         if (!response.ok) {
@@ -110,7 +123,7 @@ const SearchResults = () => {
                 {rides.map((ride, index) => (
                   <div
                     key={`${ride.driverName}-${ride.departureTime}-${index}`}
-                    className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                    className="flex flex-col rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div>

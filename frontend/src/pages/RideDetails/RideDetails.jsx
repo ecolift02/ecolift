@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axiosConfig";
+import PolyMap from "../../components/Map/PolyMap";
 
 const RideDetails = () => {
   const location = useLocation();
@@ -106,7 +107,15 @@ const RideDetails = () => {
                   Ride details
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                  {ride.departureLocationName} → {ride.arrivalLocationName}
+                  {ride.departureLocationName.substring(
+                    0,
+                    ride.departureLocationName.indexOf(","),
+                  )}{" "}
+                  →{" "}
+                  {ride.arrivalLocationName.substring(
+                    0,
+                    ride.arrivalLocationName.indexOf(","),
+                  )}
                 </h1>
               </div>
               <div className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-green-700">
@@ -144,7 +153,8 @@ const RideDetails = () => {
               <div className="rounded-2xl bg-emerald-50 p-4">
                 <p className="text-sm text-gray-500">Journey</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {ride.departureLocationName} to {ride.arrivalLocationName}
+                  {ride.departureLocationName} <br /> <b>To</b>
+                  <br /> {ride.arrivalLocationName}
                 </p>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4">
@@ -182,6 +192,9 @@ const RideDetails = () => {
                 </button>
               </div>
             </div>
+          </div>
+          <div className="mx-auto mt-8 max-w-6xl h-[500px] overflow-hidden rounded-2xl border border-emerald-100">
+            <PolyMap ride={ride} />
           </div>
         </section>
       </main>

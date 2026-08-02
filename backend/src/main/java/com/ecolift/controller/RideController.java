@@ -1,11 +1,9 @@
 package com.ecolift.controller;
 
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,16 +15,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ecolift.dto.request.RidePublishRequest;
 import com.ecolift.dto.request.RideUpdateRequest;
+import com.ecolift.dto.request.SearchRideRequest;
 import com.ecolift.dto.response.RideResponse;
-import com.ecolift.entity.Location;
 import com.ecolift.entity.Ride;
+import com.ecolift.entity.Route;
 import com.ecolift.entity.User;
-import com.ecolift.repository.LocationRepository;
 import com.ecolift.repository.UserRepository;
 import com.ecolift.service.RideService;
 
@@ -38,12 +35,10 @@ public class RideController {
 
         private final RideService rideService;
         private final UserRepository userRepository;
-        private final LocationRepository locationRepository;
 
-        public RideController(RideService rideService, UserRepository userRepository, LocationRepository locationRepository) {
+        public RideController(RideService rideService, UserRepository userRepository) {
                 this.rideService = rideService;
                 this.userRepository = userRepository;
-                this.locationRepository = locationRepository;
         }
 
     /**
@@ -61,41 +56,6 @@ public class RideController {
         User driver = userRepository.findByEmail(driverEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
 
-                // Resolve location IDs if client provided city names instead of IDs
-                Long departureId = request.getDepartureLocationId();
-                Long arrivalId = request.getArrivalLocationId();
-
-                if (departureId == null && request.getDepartureCity() != null) {
-                        var loc = locationRepository.findByCity(request.getDepartureCity());
-                        if (loc != null) departureId = loc.getId();
-                        else {
-                                // Auto-create minimal Location when city not found
-                                Location newLoc = new Location();
-                                newLoc.setAddress(request.getDepartureCity());
-                                newLoc.setCity(request.getDepartureCity());
-                                newLoc.setState("Unknown");
-                                newLoc.setLatitude(java.math.BigDecimal.ZERO);
-                                newLoc.setLongitude(java.math.BigDecimal.ZERO);
-                                Location saved = locationRepository.save(newLoc);
-                                departureId = saved.getId();
-                        }
-                }
-
-                if (arrivalId == null && request.getArrivalCity() != null) {
-                        var loc = locationRepository.findByCity(request.getArrivalCity());
-                        if (loc != null) arrivalId = loc.getId();
-                        else {
-                                Location newLoc = new Location();
-                                newLoc.setAddress(request.getArrivalCity());
-                                newLoc.setCity(request.getArrivalCity());
-                                newLoc.setState("Unknown");
-                                newLoc.setLatitude(java.math.BigDecimal.ZERO);
-                                newLoc.setLongitude(java.math.BigDecimal.ZERO);
-                                Location saved = locationRepository.save(newLoc);
-                                arrivalId = saved.getId();
-                        }
-                }
-
                 // 2. Map request fields to your Ride entity
         // Location resolution/validation and driver/vehicle assignment happen in the service layer.
         Ride ride = new Ride();
@@ -105,12 +65,21 @@ public class RideController {
         ride.setPricePerSeat(request.getPricePerSeat());
         ride.setIsDeleted(false);
 
+        Route route = new Route();
+        route.setDepartureLocationName(request.getStartAddress());
+        route.setStartLatitude(request.getStartLatitude());
+        route.setStartLongitude(request.getStartLongitude());
+        route.setArrivalLocationName(request.getEndAddress());
+        route.setEndLatitude(request.getEndLatitude());
+        route.setEndLongitude(request.getEndLongitude());
+        route.setDistanceKm(request.getDistanceKm());
+        route.setPolyline(request.getPolyline());
+        ride.setRoute(route);
+
         // 3. Call service method using driver's ID, vehicle ID, and resolved location IDs
         Ride savedRide = rideService.publishRide(
                 driver.getId(),
                 request.getVehicleId(),
-                departureId,
-                arrivalId,
                 ride
         );
         
@@ -194,24 +163,19 @@ public class RideController {
     }
 
     /**
-     * Search for available rides by source city, destination city, departure date/time, and required seats.
-     * Example: GET /api/rides/search?source=Delhi&destination=Noida&date=2026-07-25T09:00&seats=2
+     * Search for available rides using passenger route coordinates and polyline.
+     * Example: POST /api/rides/search with SearchRideRequest JSON body.
      */
-    @GetMapping("/search")
+    @PostMapping("/search")
     public ResponseEntity<List<RideResponse>> searchRides(
-            @RequestParam String source,
-            @RequestParam String destination,
-            @RequestParam("date")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime departureTime,
-            @RequestParam Integer seats
+            @RequestBody SearchRideRequest request
     ) {
-        List<Ride> rides = rideService.searchRides(source, destination, departureTime, seats);
-        
+        List<Ride> rides = rideService.searchRides(request);
+
         List<RideResponse> responses = rides.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
-                
+
         return ResponseEntity.ok(responses);
     }
 
@@ -232,8 +196,14 @@ public class RideController {
                         ? ride.getVehicle().getManufacturer() + " " + ride.getVehicle().getModel()
                         : "Unknown")
                 .vehicleLicensePlate(ride.getVehicle() != null ? ride.getVehicle().getLicensePlate() : "Unknown")
-                .departureLocationName(ride.getDepartureLocation() != null ? ride.getDepartureLocation().getCity() : "Unknown")
-                .arrivalLocationName(ride.getArrivalLocation() != null ? ride.getArrivalLocation().getCity() : "Unknown")
+                .departureLocationName(ride.getRoute() != null ? ride.getRoute().getDepartureLocationName() : null)
+                .arrivalLocationName(ride.getRoute() != null ? ride.getRoute().getArrivalLocationName() : null)
+                .startLatitude(ride.getRoute() != null ? ride.getRoute().getStartLatitude() : null)
+                .startLongitude(ride.getRoute() != null ? ride.getRoute().getStartLongitude() : null)
+                .endLatitude(ride.getRoute() != null ? ride.getRoute().getEndLatitude() : null)
+                .endLongitude(ride.getRoute() != null ? ride.getRoute().getEndLongitude() : null)
+                .distanceKm(ride.getRoute() != null ? ride.getRoute().getDistanceKm() : null)
+                .polyline(ride.getRoute() != null ? ride.getRoute().getPolyline() : null)
                 .departureTime(ride.getDepartureTime())
                 .arrivalTime(ride.getEstimateArrivalTime())
                 .availableSeats(ride.getAvailableSeats())

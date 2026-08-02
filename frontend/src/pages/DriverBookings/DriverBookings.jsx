@@ -48,7 +48,8 @@ const BookingCard = ({ booking, children }) => (
           </span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Passenger: {booking.passengerName} · Ref: {booking.bookingReference}
+          Passenger: {booking.passengerName} · Ref: {booking.bookingReference} ·
+          <b>Ph.: {booking.passengerPhoneNumber || "NA"}</b>
         </p>
       </div>
 
@@ -239,7 +240,9 @@ const DriverBookings = () => {
                         className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                       >
                         <Check className="h-4 w-4" />
-                        {actioningId === booking.id ? "Approving..." : "Approve"}
+                        {actioningId === booking.id
+                          ? "Approving..."
+                          : "Approve"}
                       </button>
                     </div>
                   )}

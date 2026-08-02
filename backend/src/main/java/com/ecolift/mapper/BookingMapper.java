@@ -12,10 +12,10 @@ public class BookingMapper {
                 .rideId(booking.getRide() != null ? booking.getRide().getId() : null)
                 .driverName(booking.getRide() != null && booking.getRide().getDriver() != null
                         ? booking.getRide().getDriver().getName() : "Unknown")
-                .departureLocationName(booking.getRide() != null && booking.getRide().getDepartureLocation() != null
-                        ? booking.getRide().getDepartureLocation().getCity() : "Unknown")
-                .arrivalLocationName(booking.getRide() != null && booking.getRide().getArrivalLocation() != null
-                        ? booking.getRide().getArrivalLocation().getCity() : "Unknown")
+                .departureLocationName(booking.getRide() != null && booking.getRide().getRoute().getDepartureLocationName() != null
+                        ? booking.getRide().getRoute().getDepartureLocationName() : "Unknown")
+                .arrivalLocationName(booking.getRide() != null && booking.getRide().getRoute().getArrivalLocationName() != null
+                        ? booking.getRide().getRoute().getArrivalLocationName() : "Unknown")
                 .departureTime(booking.getRide() != null ? booking.getRide().getDepartureTime() : null)
                 .passengerId(booking.getPassenger() != null ? booking.getPassenger().getId() : null)
                 .passengerName(booking.getPassenger() != null ? booking.getPassenger().getName() : "Unknown")
@@ -24,6 +24,9 @@ public class BookingMapper {
                 .status(booking.getStatus())
                 .cancellationReason(booking.getCancellationReason())
                 .cancellationTime(booking.getCancellationTime())
+                .driverPhoneNumber(booking.getRide() != null && booking.getRide().getDriver() != null
+                        ? booking.getRide().getDriver().getPhone() : "NA")
+                .passengerPhoneNumber(booking.getPassenger()!=null?booking.getPassenger().getPhone():"NA")
                 .build();
     }
 }

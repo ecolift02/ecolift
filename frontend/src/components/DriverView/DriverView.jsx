@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../../api/axiosConfig";
+import { getRoute } from "../../api/mapService";
 import SearchLocation from "../PassengerView/SearchLocation";
 import ViewMap from "../Map/ViewMap";
 
@@ -193,7 +194,7 @@ const DriverView = () => {
     setStep(2);
   };
 
-  const handleFinalPublish = (e) => {
+  const handleFinalPublish = async (e) => {
     e.preventDefault();
 
     if (!selectedVehicle) return;
@@ -209,12 +210,34 @@ const DriverView = () => {
         ? rideDetails.destination.display_name
         : rideDetails.destination;
 
+    const sourceLocation = rideDetails.source;
+    const destinationLocation = rideDetails.destination;
+
+    let routeData = { polyline: "", distanceKm: 0 };
+
+    if (
+      sourceLocation?.lat &&
+      sourceLocation?.lon &&
+      destinationLocation?.lat &&
+      destinationLocation?.lon
+    ) {
+      try {
+        routeData = await getRoute(sourceLocation, destinationLocation);
+      } catch (error) {
+        console.error("Failed to fetch route details", error);
+      }
+    }
+
     const payload = {
       vehicleId: selectedVehicle.id,
-      departureLocationId: rideDetails.source?.place_id || null,
-      arrivalLocationId: rideDetails.destination?.place_id || null,
-      departureCity: sourceString,
-      arrivalCity: destString,
+      startAddress: sourceString,
+      startLatitude: sourceLocation?.lat ?? null,
+      startLongitude: sourceLocation?.lon ?? null,
+      endAddress: destString,
+      endLatitude: destinationLocation?.lat ?? null,
+      endLongitude: destinationLocation?.lon ?? null,
+      distanceKm: routeData.distanceKm,
+      polyline: routeData.polyline,
       departureTime: rideDetails.departureTime,
       estimateArrivalTime: rideDetails.arrivalTime,
       availableSeats: Number(rideDetails.availableSeats),
@@ -223,7 +246,7 @@ const DriverView = () => {
 
     api
       .post("/rides", payload)
-      .then((res) => {
+      .then(() => {
         navigate("/driver/rides");
       })
       .catch((err) => {
@@ -440,6 +463,22 @@ const DriverView = () => {
       {/* STEP 2: Vehicle Selection */}
       {step === 2 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          {error && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-600 mb-6">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="rounded-full p-1 text-red-400 transition hover:bg-red-100 hover:text-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
             <button
               onClick={() => setStep(1)}

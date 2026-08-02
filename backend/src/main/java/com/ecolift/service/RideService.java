@@ -1,8 +1,8 @@
 package com.ecolift.service;
 
+import com.ecolift.dto.request.SearchRideRequest;
 import com.ecolift.entity.Ride;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RideService {
@@ -14,11 +14,11 @@ public interface RideService {
     boolean exists(Long id);
     long count();
 
-    Ride publishRide(Long driverId, Long vehicleId, Long departureLocationId, Long arrivalLocationId, Ride ride);
+    Ride publishRide(Long driverId, Long vehicleId, Ride ride);
     Ride updateRide(Long rideId, Long driverId, Ride ride);
     void cancelRide(Long rideId, Long driverId);
     void completeRide(Long rideId);
-    List<Ride> searchRides(String source, String destination, LocalDateTime departureTime, Integer seats);
+    List<Ride> searchRides(SearchRideRequest request);
     List<Ride> getDriverRides(Long driverId);
     List<Ride> getPassengerBookings(Long passengerId);
     void updateAvailableSeats(Long rideId, int seatsToDeduct);
