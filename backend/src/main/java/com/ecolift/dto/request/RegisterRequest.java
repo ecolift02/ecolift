@@ -27,4 +27,5 @@ public class RegisterRequest {
     private String phone; // Added to capture phone from React
 
     private String role;  // Added to capture role ("PASSENGER" or "DRIVER") from React
+    private String profilePictureUrl; // Added to capture profile picture URL from React
 }

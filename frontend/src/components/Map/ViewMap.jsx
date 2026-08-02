@@ -52,7 +52,12 @@ function SetView({ center, zoom }) {
   return null;
 }
 
-export default function ViewMap({ from, to }) {
+export default function ViewMap({
+  from,
+  to,
+  setPolyline,
+  inPassengerView = false,
+}) {
   const [routeCoords, setRouteCoords] = useState([]);
   const [routeStatus, setRouteStatus] = useState(
     "Pick two places to see the route",
@@ -93,8 +98,11 @@ export default function ViewMap({ from, to }) {
 
       try {
         const coords = await getRoute(from, to);
+        if (inPassengerView) {
+          setPolyline(coords?.polyline);
+        }
         if (active) {
-          setRouteCoords(coords);
+          setRouteCoords(coords?.coordinates);
           setRouteStatus("Route loaded");
         }
       } catch (error) {

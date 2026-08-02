@@ -23,15 +23,25 @@ const SearchResults = () => {
           minute: "2-digit",
         });
   };
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   useEffect(() => {
     const source = searchParams.get("from");
     const destination = searchParams.get("to");
     const date = searchParams.get("date");
     const seats = searchParams.get("seats") || "1";
 
-    if (!source || !destination || !date) {
-      setError("Please provide source, destination, and date.");
+    const sessionRequest = (() => {
+      try {
+        return JSON.parse(window.sessionStorage.getItem("rideSearchRequest"));
+      } catch (err) {
+        return null;
+      }
+    })();
+
+    if (!sessionRequest || !sessionRequest.polyline) {
+      setError("Search data could not be loaded. Please search again.");
       setLoading(false);
       setRides([]);
       return;
@@ -43,13 +53,18 @@ const SearchResults = () => {
       setRides([]);
 
       try {
-        const url = `http://localhost:8083/api/rides/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${encodeURIComponent(date)}T00:00:00&seats=${encodeURIComponent(seats)}`;
+        const body = {
+          polyline: sessionRequest.polyline,
+          departureTime: sessionRequest.departureTime || `${date}T00:00:00`,
+          seats: sessionRequest.seats || Number(seats),
+        };
 
-        const response = await fetch(url, {
-          method: "GET",
+        const response = await fetch("http://localhost:8083/api/rides/search", {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify(body),
         });
 
         if (!response.ok) {
@@ -71,7 +86,7 @@ const SearchResults = () => {
   return (
     <>
       <Navbar />
-      <main className="pt-20 bg-gradient-to-b from-emerald-50 via-white to-gray-50">
+      <main className="pt-20 pb-50 bg-gradient-to-b from-emerald-50 via-white to-gray-50">
         <section className="px-4 py-10 md:py-14">
           <div className="mx-auto max-w-6xl rounded-[28px] bg-white shadow-[0_12px_40px_rgba(21,128,61,0.08)] border border-emerald-100 p-6 md:p-8">
             <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -108,7 +123,7 @@ const SearchResults = () => {
                 {rides.map((ride, index) => (
                   <div
                     key={`${ride.driverName}-${ride.departureTime}-${index}`}
-                    className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                    className="flex flex-col rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div>
@@ -145,7 +160,9 @@ const SearchResults = () => {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/ride-details", { state: { ride } })}
+                      onClick={() =>
+                        navigate("/ride-details", { state: { ride } })
+                      }
                       className="mt-5 w-full rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
                     >
                       Details

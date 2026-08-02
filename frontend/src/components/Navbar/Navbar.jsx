@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getProfile } from "../../api/userApi";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, currentMode, updateCurrentMode, user } = useAuth();
+  const { isAuthenticated, logout, currentMode, updateCurrentMode, user } =
+    useAuth();
   const location = useLocation();
 
   // States
+  const [profile, setProfile] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
   const [userMode, setUserMode] = useState(
@@ -54,6 +57,20 @@ const Navbar = () => {
     setUserMode((currentMode || "PASSENGER").toLowerCase());
   }, [currentMode]);
 
+  //Profile
+  const profileFetch = async () => {
+    try {
+      const data = await getProfile();
+      setProfile(data.name);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      profileFetch();
+    }
+  }, [isAuthenticated]);
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
@@ -72,18 +89,6 @@ const Navbar = () => {
               className="text-green-700 font-semibold border-b-2 border-green-700 pb-1"
             >
               How it Works
-            </a>
-            <a
-              href="#support"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
-              Support
-            </a>
-            <a
-              href="#blog"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
-              Blog
             </a>
           </div>
         </div>
@@ -109,7 +114,6 @@ const Navbar = () => {
           ) : (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               {/* Eco Stats Pill */}
-              
 
               <div className="hidden md:flex items-center gap-2">
                 {user?.roles?.includes("ADMIN") && (
@@ -169,7 +173,7 @@ const Navbar = () => {
                 <img
                   className="w-full h-full object-cover"
                   alt="User Profile Avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTXEqeXb5oMyQbf1hR_m59FLXF81K1UzNc300uKHMGjM_4kHPRyedHC2m4sirqtGwkISVtDsxdYa6FnhQJ_3RY5OskpVuPlEKu6NRYsEGQjQUCILUNSbCIpi8XbIW2PqJ-_yc6nwknNGb0bDskAn4_z6sCdeCsOaRjL0zYCKJ-lgjobRKMy7Rx_xVuOq60y31HjSDwRGQR9YgsJamE6F31g2kO8CY1Zidr6cdK7inh_bkIDXD8W78fcW2GT2edMpT6Q4yGHfD4ubw"
+                  src={user?.profilePictureUrl || "/default-avatar.png"}
                 />
               </button>
 
@@ -190,7 +194,7 @@ const Navbar = () => {
                     <span className="material-symbols-outlined text-[18px]">
                       person
                     </span>
-                    Profile
+                    Profile : <b>{user?.name || "User"}</b>
                   </Link>
 
                   {user?.roles?.includes("ADMIN") && (

@@ -1,8 +1,9 @@
 package com.ecolift.service.impl;
 
-import com.ecolift.entity.Location;
 import com.ecolift.entity.Ride;
+import com.ecolift.entity.Route;
 import com.ecolift.entity.User;
+import com.ecolift.dto.request.SearchRideRequest;
 import com.ecolift.entity.Vehicle;
 import com.ecolift.exception.InvalidRideStateException;
 import com.ecolift.exception.ResourceNotFoundException;
@@ -14,12 +15,17 @@ import com.ecolift.repository.RideRepository;
 import com.ecolift.service.RideService;
 import com.ecolift.service.UserService;
 import com.ecolift.service.VehicleService;
+import com.mapbox.geojson.Point;
+import com.mapbox.geojson.utils.PolylineUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -88,7 +94,7 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Ride publishRide(Long driverId, Long vehicleId, Long departureLocationId, Long arrivalLocationId, Ride ride) {
+    public Ride publishRide(Long driverId, Long vehicleId, Ride ride) {
         User driver = userService.getDriverProfile(driverId);
         Vehicle vehicle = vehicleService.findById(vehicleId);
 
@@ -101,14 +107,18 @@ public class RideServiceImpl implements RideService {
             throw new VehicleNotVerifiedException("Cannot publish a ride with an unverified vehicle.");
         }
 
-        Location departure = locationRepository.findById(departureLocationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Departure location not found with id: " + departureLocationId));
+        if (ride.getRoute() == null) {
+            throw new IllegalArgumentException("Route details are required.");
+        }
 
-        Location arrival = locationRepository.findById(arrivalLocationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Arrival location not found with id: " + arrivalLocationId));
-
-        if (departure.getId().equals(arrival.getId())) {
-            throw new IllegalArgumentException("Departure and arrival cannot be same.");
+        Route route = ride.getRoute();
+        if (route.getDepartureLocationName() == null || route.getDepartureLocationName().isBlank()
+                || route.getArrivalLocationName() == null || route.getArrivalLocationName().isBlank()
+                || route.getStartLatitude() == null || route.getStartLongitude() == null
+                || route.getEndLatitude() == null || route.getEndLongitude() == null
+                || route.getDistanceKm() == null || route.getDistanceKm() <= 0
+                || route.getPolyline() == null || route.getPolyline().isBlank()) {
+            throw new IllegalArgumentException("Route details are incomplete.");
         }
 
         if (ride.getAvailableSeats() != null && vehicle.getCapacity() != null
@@ -126,8 +136,7 @@ public class RideServiceImpl implements RideService {
 
         ride.setDriver(driver);
         ride.setVehicle(vehicle);
-        ride.setDepartureLocation(departure);
-        ride.setArrivalLocation(arrival);
+        ride.setRoute(route);
         
         // ERROR 3 FIXED: Removed setStatus(). Mapped to isDeleted flag instead.
         ride.setIsDeleted(false);
@@ -203,8 +212,121 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Ride> searchRides(String source, String destination, LocalDateTime departureTime, Integer seats) {
-        return rideRepository.searchAvailableRides(source, destination, departureTime, seats);
+    public List<Ride> searchRides(SearchRideRequest request) {
+        List<Ride> candidates = rideRepository
+                .findByDepartureTimeGreaterThanEqualAndAvailableSeatsGreaterThanEqualAndIsDeletedFalse(
+                        request.getDepartureTime(),
+                        request.getSeats());
+
+        List<double[]> passengerRoute = decodePolyline(request.getPolyline());
+        if (passengerRoute.isEmpty()) {
+            return List.of();
+        }
+
+        int tolerance = 200; // 100 meters tolerance for relaxed matching
+
+        return candidates.stream()
+                .filter(ride -> ride.getRoute() != null && ride.getRoute().getPolyline() != null)
+                .filter(ride -> {
+                    List<double[]> driverRoute = decodePolyline(ride.getRoute().getPolyline());
+                    if (driverRoute.isEmpty()) {
+                        return false;
+                    }
+                    double percentage = relaxedMatch(driverRoute, passengerRoute, tolerance);
+                    return percentage >= 25.0;
+                })
+                .toList();
+    }
+
+    private static List<double[]> decodePolyline(String encoded) {
+        List<double[]> route = new ArrayList<>();
+        if (encoded == null || encoded.isBlank()) {
+            return route;
+        }
+
+        try {
+            List<Point> points = PolylineUtils.decode(encoded, 5);
+            for (Point point : points) {
+                route.add(new double[]{point.latitude(), point.longitude()});
+            }
+        } catch (Exception e) {
+            // If decoding fails, return an empty route so the ride is excluded.
+            return List.of();
+        }
+
+        return route;
+    }
+
+    private static double relaxedMatch(
+        List<double[]> driverRoute,
+        List<double[]> passengerRoute,
+        int toleranceMeters) {
+
+        if (driverRoute.isEmpty() || passengerRoute.isEmpty()) {
+            return 0.0;
+        }
+
+        List<Integer> matchedIndices = new ArrayList<>();
+
+        // Find nearest driver point for every passenger point
+        for (double[] passengerPoint : passengerRoute) {
+
+            int nearestIndex = -1;
+            double nearestDistance = Double.MAX_VALUE;
+
+            for (int i = 0; i < driverRoute.size(); i++) {
+
+                double[] driverPoint = driverRoute.get(i);
+
+                double distance = haversineDistanceMeters(
+                        passengerPoint[0], passengerPoint[1],
+                        driverPoint[0], driverPoint[1]);
+
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestIndex = i;
+                }
+            }
+
+            if (nearestDistance <= toleranceMeters) {
+                matchedIndices.add(nearestIndex);
+            }
+        }
+
+        if (matchedIndices.isEmpty()) {
+            return 0.0;
+        }
+
+        // Longest increasing run
+        int bestRun = 1;
+        int currentRun = 1;
+
+        final int MAX_INDEX_GAP = 3; // Increase to 5-10 if needed
+
+        for (int i = 1; i < matchedIndices.size(); i++) {
+
+            int diff = matchedIndices.get(i) - matchedIndices.get(i - 1);
+
+            if (diff > 0 && diff <= MAX_INDEX_GAP) {
+                currentRun++;
+            } else {
+                currentRun = 1;
+            }
+
+            bestRun = Math.max(bestRun, currentRun);
+        }
+
+        return (bestRun * 100.0) / passengerRoute.size();
+    }
+
+    private static double haversineDistanceMeters(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371000.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     @Override
