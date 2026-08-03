@@ -16,7 +16,7 @@
 	<description>Ecolift Backend Application</description>
 
 	<properties>
-		<java.version>21</java.version>
+		<java.version>17</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
 	</properties>
 
@@ -49,6 +49,11 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.mapbox.mapboxsdk</groupId>
+			<artifactId>mapbox-sdk-geojson</artifactId>
+			<version>5.8.0</version>
 		</dependency>
 
 		<dependency>

@@ -13,6 +13,7 @@ import {
   Check,
   BadgeCheck,
   ShieldAlert,
+  ShieldX,
   Tag,
 } from "lucide-react";
 import api from "../../api/axiosConfig";
@@ -293,20 +294,22 @@ const MyVehicles = () => {
                         {!isEditing && (
                           <>
                             <div className="mt-4 flex flex-wrap items-center gap-2">
-                              <span
-                                className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
-                                  vehicle.isVerified
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-amber-50 text-amber-700"
-                                }`}
-                              >
-                                {vehicle.isVerified ? (
+                              {vehicle.verificationStatus === "REJECTED" ? (
+                                <span className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
+                                  <ShieldX className="h-3.5 w-3.5" />
+                                  Rejected
+                                </span>
+                              ) : vehicle.isVerified ? (
+                                <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                                   <BadgeCheck className="h-3.5 w-3.5" />
-                                ) : (
+                                  Verified
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                                   <ShieldAlert className="h-3.5 w-3.5" />
-                                )}
-                                {vehicle.isVerified ? "Verified" : "Pending Verification"}
-                              </span>
+                                  Pending Verification
+                                </span>
+                              )}
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                   vehicle.status === "ACTIVE"
@@ -317,6 +320,23 @@ const MyVehicles = () => {
                                 {vehicle.status}
                               </span>
                             </div>
+
+                            {vehicle.verificationStatus === "REJECTED" &&
+                              vehicle.rejectionReason && (
+                                <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+                                  <ShieldX className="mt-0.5 h-4 w-4 shrink-0" />
+                                  <div>
+                                    <p className="font-semibold">
+                                      Rejected by admin
+                                    </p>
+                                    <p>{vehicle.rejectionReason}</p>
+                                    <p className="mt-1 text-xs text-red-500">
+                                      Edit and save this vehicle to resubmit it
+                                      for review.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
 
                             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-500">
                               <span className="flex items-center gap-1.5">

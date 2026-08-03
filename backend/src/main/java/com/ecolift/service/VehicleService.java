@@ -1,6 +1,7 @@
 package com.ecolift.service;
 
 import com.ecolift.entity.Vehicle;
+import com.ecolift.entity.VehicleVerificationStatus;
 import java.util.List;
 
 public interface VehicleService {
@@ -25,4 +26,10 @@ public interface VehicleService {
     Vehicle updateVehicleForDriver(Long driverId, Long vehicleId, Vehicle updatedVehicle);
     void deleteVehicleForDriver(Long driverId, Long vehicleId);
     List<Vehicle> getActiveVehiclesForDriver(Long driverId);
+
+    // Added for the Admin Management Module (Vehicle Verification, Module 3).
+    List<Vehicle> getVehiclesByVerificationStatus(VehicleVerificationStatus status);
+    Vehicle approveVehicle(Long vehicleId);
+    Vehicle rejectVehicle(Long vehicleId, String reason);
+    long countByVerificationStatus(VehicleVerificationStatus status);
 }

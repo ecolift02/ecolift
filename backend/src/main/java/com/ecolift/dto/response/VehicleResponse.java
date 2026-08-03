@@ -1,5 +1,6 @@
 package com.ecolift.dto.response;
 
+import com.ecolift.entity.VehicleVerificationStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -23,4 +24,9 @@ public class VehicleResponse {
     private Boolean isVerified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Added for the Admin Management Module (Vehicle Verification, Module 3).
+    // Lets a driver see their own vehicle's review status/rejection reason.
+    private VehicleVerificationStatus verificationStatus;
+    private String rejectionReason;
 }

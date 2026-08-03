@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -77,6 +79,18 @@ public class Vehicle {
     @Column(name = "is_verified")
     private Boolean isVerified = false;
 
+    // Added for the Admin Management Module (Vehicle Verification, Module 3).
+    // isVerified above is kept as-is (RideServiceImpl already gates ride
+    // publishing on it) and is now kept in sync with this new field:
+    // APPROVED -> isVerified = true, PENDING/REJECTED -> isVerified = false.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "verification_status", length = 20)
+    private VehicleVerificationStatus verificationStatus = VehicleVerificationStatus.PENDING;
+
+    // Only populated when verificationStatus = REJECTED.
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
 
@@ -95,6 +109,9 @@ public class Vehicle {
         updatedAt = now;
         if (status == null) {
             status = "ACTIVE";
+        }
+        if (verificationStatus == null) {
+            verificationStatus = VehicleVerificationStatus.PENDING;
         }
     }
 

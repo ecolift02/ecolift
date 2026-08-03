@@ -22,4 +22,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // "just the ones awaiting my decision".
     List<Booking> findByRideDriverId(Long driverId);
     List<Booking> findByRideDriverIdAndStatus(Long driverId, Booking.BookingStatus status);
+
+    // Added for the Admin Management Module (Booking Monitoring, Module 5).
+    List<Booking> findByStatus(Booking.BookingStatus status);
 }

@@ -14,6 +14,11 @@ import MyVehicles from "./pages/MyVehicles/MyVehicles";
 import Unauthorized from "./pages/Unauthorized/Unauthorized";
 import MyBookings from "./pages/MyBookings/MyBookings";
 import DriverBookings from "./pages/DriverBookings/DriverBookings";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminUsers from "./pages/Admin/AdminUsers";
+import AdminVehicles from "./pages/Admin/AdminVehicles";
+import AdminRides from "./pages/Admin/AdminRides";
+import AdminBookings from "./pages/Admin/AdminBookings";
 function App() {
   return (
     <AuthProvider>
@@ -49,6 +54,15 @@ function App() {
               element={<div>Publish Ride Page</div>}
             />
           </Route> */}
+
+          {/* Protected Routes: ADMIN only */}
+          <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/vehicles" element={<AdminVehicles />} />
+            <Route path="/admin/rides" element={<AdminRides />} />
+            <Route path="/admin/bookings" element={<AdminBookings />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

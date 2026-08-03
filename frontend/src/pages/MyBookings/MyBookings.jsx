@@ -34,7 +34,8 @@ const STATUS_STYLES = {
 };
 
 // A passenger can only cancel a booking that hasn't already reached a final state.
-const isCancellable = (status) => status === "PENDING" || status === "CONFIRMED";
+const isCancellable = (status) =>
+  status === "PENDING" || status === "CONFIRMED";
 
 const MyBookings = () => {
   const navigate = useNavigate();
@@ -142,13 +143,22 @@ const MyBookings = () => {
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-emerald-600" />
                           <span className="font-semibold text-slate-800">
-                            {booking.departureLocationName} →{" "}
-                            {booking.arrivalLocationName}
+                            {booking.departureLocationName.substring(
+                              0,
+                              booking.departureLocationName.indexOf(","),
+                            )}{" "}
+                            →{" "}
+                            {booking.arrivalLocationName.substring(
+                              0,
+                              booking.arrivalLocationName.indexOf(","),
+                            )}
                           </span>
+                          <span className="text-slate-500"></span>
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
                           Driver: {booking.driverName} · Ref:{" "}
-                          {booking.bookingReference}
+                          {booking.bookingReference} . Ph.:{" "}
+                          <b>{booking.driverPhoneNumber || "NA"}</b>
                         </p>
                       </div>
 

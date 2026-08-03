@@ -24,6 +24,8 @@ public class VehicleMapper {
                 .isVerified(vehicle.getIsVerified())
                 .createdAt(vehicle.getCreatedAt())
                 .updatedAt(vehicle.getUpdatedAt())
+                .verificationStatus(vehicle.getVerificationStatus())
+                .rejectionReason(vehicle.getRejectionReason())
                 .build();
     }
 
@@ -39,6 +41,8 @@ public class VehicleMapper {
                 .fuelType(vehicle.getFuelType())
                 .status(vehicle.getStatus())
                 .isVerified(vehicle.getIsVerified())
+                .verificationStatus(vehicle.getVerificationStatus())
+                .rejectionReason(vehicle.getRejectionReason())
                 .build();
     }
 

@@ -57,6 +57,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .roles(Set.of(userRole))
                 .currentMode(initialMode)
+                .profilePictureUrl(request.getProfilePictureUrl())
                 .build();
 
         userRepository.save(user);
@@ -125,6 +126,7 @@ public class AuthService {
                 .userId(user.getId())
                .name(user.getName())
                 .email(user.getEmail())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                 .build();
     }

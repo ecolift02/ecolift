@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../api/supabaseClient"; // Adjust path to your Supabase client
 
 const Register = () => {
   const navigate = useNavigate();
-
-  // 1. Extract the login function from useAuth
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -14,12 +13,16 @@ const Register = () => {
     phone: "",
     role: "PASSENGER",
     password: "",
+    profileImageUrl: "", // Added for the final URL
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 2. Change error state to an object to track each input field individually
+  // Image states
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
   const [errors, setErrors] = useState({
     name: "",
     email: "",
@@ -29,10 +32,11 @@ const Register = () => {
   });
 
   // Regex Patterns
-  const NAME_REGEX = /^[a-zA-Z\s]{2,}$/; // At least 2 letters
-  const EMAIL_REGEX = /^[a-zA-Z]+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const PHONE_REGEX = /^\d{10}$/; // Exactly 10 digits
-  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/; // 8+ chars & 1 uppercase & 1 symbol
+  const NAME_REGEX = /^[a-zA-Z\s]{2,}$/;
+  const EMAIL_REGEX =
+    /^[a-zA-Z]+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const PHONE_REGEX = /^\d{10}$/;
+  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,34 +45,71 @@ const Register = () => {
       [name]: value,
     }));
 
-    // Real-time validation for each field
     let fieldError = "";
 
-    // Only show format errors if the user has typed something
     if (value !== "") {
-      if (name === "name"  && !NAME_REGEX.test(value)) {
-        fieldError = "Name must be at least 2 characters and contain only letters and spaces";
+      if (name === "name" && !NAME_REGEX.test(value)) {
+        fieldError =
+          "Name must be at least 2 characters and contain only letters and spaces";
       } else if (name === "email" && !EMAIL_REGEX.test(value)) {
         fieldError = "Invalid email address format";
       } else if (name === "phone" && !PHONE_REGEX.test(value)) {
         fieldError = "Phone number must be exactly 10 digits";
       } else if (name === "password" && !PASSWORD_REGEX.test(value)) {
-        fieldError = "Must be at least 8 characters, 1 uppercase, and include a symbol";
+        fieldError =
+          "Must be at least 8 characters, 1 uppercase, and include a symbol";
       }
     }
 
-    // Update the specific field's error in the state object
     setErrors((prev) => ({
       ...prev,
       [name]: fieldError,
-      global: "", // Clear global API errors when user types
+      global: "",
     }));
+  };
+
+  // Handle Image Selection (Gallery or Camera)
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Basic validation: max 5MB
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          global: "Image must be less than 2MB",
+        }));
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setErrors((prev) => ({ ...prev, global: "" }));
+    }
+  };
+
+  // Upload image to Supabase and return the public URL
+  const uploadImageToSupabase = async () => {
+    if (!imageFile) return null;
+
+    const fileExt = imageFile.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `profiles/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars") // Ensure this bucket exists in your Supabase project
+      .upload(filePath, imageFile);
+
+    if (uploadError) {
+      console.error("Supabase Error details:", uploadError);
+      throw new Error("Failed to upload profile picture. Please try again.");
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    return data.publicUrl;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Final validation check before submitting
     if (errors.name || errors.email || errors.phone || errors.password) {
       setErrors((prev) => ({
         ...prev,
@@ -80,17 +121,32 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // 1. Upload image first if it exists
+      let uploadedImageUrl = "";
+      if (imageFile) {
+        uploadedImageUrl = await uploadImageToSupabase();
+      }
+
+      // 2. Prepare final data payload
+      const finalSubmissionData = {
+        ...formData,
+        profileImageUrl: uploadedImageUrl,
+      };
+
+      // 3. Send to your Spring Boot Backend
       const response = await fetch("http://localhost:8083/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalSubmissionData),
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || "Registration failed. Please try again.");
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Registration failed. Please try again.",
+        );
       }
 
       const data = await response.json();
@@ -113,7 +169,6 @@ const Register = () => {
 
   return (
     <main className="flex min-h-screen w-full relative">
-      {/* Go to Home Button - Fixed to Top Right Corner */}
       <div className="absolute top-6 right-6 z-50">
         <Link
           to="/"
@@ -189,15 +244,54 @@ const Register = () => {
             </p>
           </div>
 
-          {/* Global Error Message Display */}
           {errors.global && (
             <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
               {errors.global}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Profile Picture Upload Section */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative w-24 h-24 rounded-full bg-green-50 border-2 border-dashed border-green-600 flex items-center justify-center overflow-hidden mb-3">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Profile preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-green-600 text-4xl">
+                    add_a_photo
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-4">
+                {/* Standard File Upload */}
+                <label className="cursor-pointer text-sm font-medium text-green-700 hover:text-green-800 bg-green-50 px-3 py-1.5 rounded-full transition">
+                  Upload Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Camera Capture (HTML5 capture attribute opens camera on mobile) */}
+                <label className="cursor-pointer text-sm font-medium text-green-700 hover:text-green-800 bg-green-50 px-3 py-1.5 rounded-full transition">
+                  Take Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
             {/* Full Name */}
             <div>
               <label className="block mb-1 font-medium">Full Name</label>
@@ -341,8 +435,7 @@ const Register = () => {
                   </span>
                 </button>
               </div>
-              
-              {/* Display red error if invalid, otherwise show standard gray hint */}
+
               {errors.password ? (
                 <p className="text-red-500 text-xs mt-1 ml-1">
                   {errors.password}

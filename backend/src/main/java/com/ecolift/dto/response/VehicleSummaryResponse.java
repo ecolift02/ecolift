@@ -1,5 +1,6 @@
 package com.ecolift.dto.response;
 
+import com.ecolift.entity.VehicleVerificationStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -16,4 +17,8 @@ public class VehicleSummaryResponse {
     private String fuelType;
     private String status;
     private Boolean isVerified;
+
+    // Added for the Admin Management Module (Vehicle Verification, Module 3).
+    private VehicleVerificationStatus verificationStatus;
+    private String rejectionReason;
 }

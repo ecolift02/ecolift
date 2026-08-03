@@ -3,6 +3,7 @@ package com.ecolift.service.impl;
 import com.ecolift.entity.Role;
 import com.ecolift.entity.User;
 import com.ecolift.entity.Vehicle;
+import com.ecolift.entity.VehicleVerificationStatus;
 import com.ecolift.exception.DuplicateResourceException;
 import com.ecolift.exception.ResourceNotFoundException;
 import com.ecolift.repository.RoleRepository;
@@ -125,6 +126,14 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setRegistrationNumber(updatedVehicle.getRegistrationNumber());
         vehicle.setStatus(updatedVehicle.getStatus());
 
+        // Added for the Admin Management Module (Vehicle Verification, Module 3):
+        // editing a rejected vehicle is treated as a resubmission for review.
+        if (vehicle.getVerificationStatus() == VehicleVerificationStatus.REJECTED) {
+            vehicle.setVerificationStatus(VehicleVerificationStatus.PENDING);
+            vehicle.setRejectionReason(null);
+            vehicle.setIsVerified(false);
+        }
+
         return vehicleRepository.save(vehicle);
     }
 
@@ -168,11 +177,14 @@ public class VehicleServiceImpl implements VehicleService {
         User driver = userService.findById(driverId);
         
         vehicle.setDriver(driver);
-        // NOTE: There is no admin/verification workflow implemented yet (no endpoint
-        // calls verifyVehicle()), so leaving this "false" made it impossible for any
-        // vehicle to ever be used to publish a ride. Auto-verifying on registration
-        // until a real verification flow exists.
-        vehicle.setIsVerified(true);
+        // UPDATED for the Admin Management Module (Vehicle Verification, Module 3):
+        // a real admin verification workflow now exists (see approveVehicle/
+        // rejectVehicle below), so new vehicles start PENDING/unverified instead
+        // of being auto-verified. Only an admin-approved vehicle can be used to
+        // publish a ride (enforced in RideServiceImpl via isVerified, unchanged).
+        vehicle.setVerificationStatus(VehicleVerificationStatus.PENDING);
+        vehicle.setRejectionReason(null);
+        vehicle.setIsVerified(false);
         vehicle.setIsDeleted(false);
         
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
@@ -195,7 +207,43 @@ public class VehicleServiceImpl implements VehicleService {
     public Vehicle verifyVehicle(Long vehicleId) {
         Vehicle vehicle = findById(vehicleId);
         vehicle.setIsVerified(true);
+        // Kept in sync so this pre-existing method still leaves the vehicle in a
+        // consistent state now that verificationStatus exists.
+        vehicle.setVerificationStatus(VehicleVerificationStatus.APPROVED);
+        vehicle.setRejectionReason(null);
         return vehicleRepository.save(vehicle);
+    }
+
+    // ---- Added for the Admin Management Module (Vehicle Verification, Module 3) ----
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Vehicle> getVehiclesByVerificationStatus(VehicleVerificationStatus status) {
+        return vehicleRepository.findByVerificationStatusAndIsDeletedFalse(status);
+    }
+
+    @Override
+    public Vehicle approveVehicle(Long vehicleId) {
+        Vehicle vehicle = findById(vehicleId);
+        vehicle.setVerificationStatus(VehicleVerificationStatus.APPROVED);
+        vehicle.setIsVerified(true);
+        vehicle.setRejectionReason(null);
+        return vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    public Vehicle rejectVehicle(Long vehicleId, String reason) {
+        Vehicle vehicle = findById(vehicleId);
+        vehicle.setVerificationStatus(VehicleVerificationStatus.REJECTED);
+        vehicle.setIsVerified(false);
+        vehicle.setRejectionReason(reason);
+        return vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByVerificationStatus(VehicleVerificationStatus status) {
+        return vehicleRepository.countByVerificationStatus(status);
     }
 
     @Override
