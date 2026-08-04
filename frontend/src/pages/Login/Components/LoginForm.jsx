@@ -1,22 +1,22 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; 
+import { useNavigate, Link } from "react-router-dom";
 // 1. Import the useAuth hook from your context file (Adjust the path if needed)
-import { useAuth } from "../../../context/AuthContext"; 
+import { useAuth } from "../../../context/AuthContext";
 import { loginUser } from "../../../api/authApi";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Track field-specific and global errors
   const [errors, setErrors] = useState({
     email: "",
     password: "",
     global: "",
   });
-  
+
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -32,9 +32,17 @@ const LoginForm = () => {
     setEmail(val);
 
     if (val.trim() === "") {
-      setErrors((prev) => ({ ...prev, email: "Email is required", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        email: "Email is required",
+        global: "",
+      }));
     } else if (!EMAIL_REGEX.test(val)) {
-      setErrors((prev) => ({ ...prev, email: "Invalid email address format", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        email: "Invalid email address format",
+        global: "",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, email: "", global: "" }));
     }
@@ -46,12 +54,17 @@ const LoginForm = () => {
     setPassword(val);
 
     if (val === "") {
-      setErrors((prev) => ({ ...prev, password: "Password is required", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        password: "Password is required",
+        global: "",
+      }));
     } else if (!PASSWORD_REGEX.test(val)) {
-      setErrors((prev) => ({ 
-        ...prev, 
-        password: "Must be at least 8 characters, 1 uppercase, and include a symbol", 
-        global: "" 
+      setErrors((prev) => ({
+        ...prev,
+        password:
+          "Must be at least 8 characters, 1 uppercase, and include a symbol",
+        global: "",
       }));
     } else {
       setErrors((prev) => ({ ...prev, password: "", global: "" }));
@@ -59,8 +72,8 @@ const LoginForm = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); 
-    
+    e.preventDefault();
+
     // Final safety check before submitting
     let hasError = false;
     const newErrors = { email: "", password: "", global: "" };
@@ -77,7 +90,8 @@ const LoginForm = () => {
       newErrors.password = "Password is required";
       hasError = true;
     } else if (!PASSWORD_REGEX.test(password)) {
-      newErrors.password = "Must be at least 8 characters, 1 uppercase, and include a symbol";
+      newErrors.password =
+        "Must be at least 8 characters, 1 uppercase, and include a symbol";
       hasError = true;
     }
 
@@ -104,7 +118,11 @@ const LoginForm = () => {
           global: (
             <>
               {err.response?.data?.message || "Please verify your email first."}{" "}
-              <Link to="/verify-otp" state={{ email }} className="font-semibold underline">
+              <Link
+                to="/verify-otp"
+                state={{ email }}
+                className="font-semibold underline"
+              >
                 Verify now
               </Link>
             </>
@@ -113,7 +131,8 @@ const LoginForm = () => {
       } else {
         setErrors((prev) => ({
           ...prev,
-          global: err.response?.data?.message || "Failed to login. Please try again.",
+          global:
+            err.response?.data?.message || "Failed to login. Please try again.",
         }));
       }
     } finally {
@@ -122,7 +141,11 @@ const LoginForm = () => {
   };
 
   // Helper to disable button if there are active errors or empty fields
-  const isFormInvalid = errors.email !== "" || errors.password !== "" || email === "" || password === "";
+  const isFormInvalid =
+    errors.email !== "" ||
+    errors.password !== "" ||
+    email === "" ||
+    password === "";
 
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
@@ -160,8 +183,8 @@ const LoginForm = () => {
               onChange={handleEmailChange}
               placeholder="name@company.com"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none transition ${
-                errors.email 
-                  ? "border-red-500 focus:ring-red-500" 
+                errors.email
+                  ? "border-red-500 focus:ring-red-500"
                   : "border-gray-200 focus:ring-green-600"
               }`}
             />
@@ -180,8 +203,8 @@ const LoginForm = () => {
                 onChange={handlePasswordChange}
                 placeholder="••••••••"
                 className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 outline-none transition ${
-                  errors.password 
-                    ? "border-red-500 focus:ring-red-500" 
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500"
                     : "border-gray-200 focus:ring-green-600"
                 }`}
               />
@@ -196,7 +219,9 @@ const LoginForm = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1 ml-1">{errors.password}</p>
+              <p className="text-red-500 text-xs mt-1 ml-1">
+                {errors.password}
+              </p>
             )}
           </div>
 
@@ -210,7 +235,10 @@ const LoginForm = () => {
           </button>
 
           <div className="text-center">
-            <Link to="/forgot-password" className="text-sm text-green-700 hover:underline">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-green-700 hover:underline"
+            >
               Forgot password?
             </Link>
           </div>

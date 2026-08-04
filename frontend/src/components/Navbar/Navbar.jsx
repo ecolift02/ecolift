@@ -10,7 +10,7 @@ const Navbar = () => {
   const location = useLocation();
 
   // States
-  const [profile, setProfile] = useState("");
+  const [profile, setProfile] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
   const [userMode, setUserMode] = useState(
@@ -61,7 +61,7 @@ const Navbar = () => {
   const profileFetch = async () => {
     try {
       const data = await getProfile();
-      setProfile(data.name);
+      setProfile(data);
     } catch (err) {
       console.error("Failed to fetch profile:", err);
     }
@@ -71,6 +71,10 @@ const Navbar = () => {
       profileFetch();
     }
   }, [isAuthenticated]);
+  const getInitial = () => {
+    const name = profile?.name || user?.name || "U";
+    return name.charAt(0).toUpperCase();
+  };
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
@@ -170,11 +174,15 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full border-2 border-green-700 overflow-hidden focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition"
               >
-                <img
-                  className="w-full h-full object-cover"
-                  alt="User Profile Avatar"
-                  src={user?.profilePictureUrl || "/default-avatar.png"}
-                />
+                {profile?.profilePictureUrl || user?.profilePictureUrl ? (
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="User Profile Avatar"
+                    src={profile?.profilePictureUrl || user?.profilePictureUrl}
+                  />
+                ) : (
+                  <span>{getInitial()}</span>
+                )}
               </button>
 
               {/* Dropdown Menu */}
@@ -194,7 +202,7 @@ const Navbar = () => {
                     <span className="material-symbols-outlined text-[18px]">
                       person
                     </span>
-                    Profile : <b>{user?.name || "User"}</b>
+                    Profile : <b>{profile?.name || user?.name || "User"}</b>
                   </Link>
 
                   {user?.roles?.includes("ADMIN") && (

@@ -64,6 +64,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .roles(Set.of(userRole))
                 .currentMode(initialMode)
+                .profilePictureUrl(request.getProfilePictureUrl())
                 .emailVerified(false)
                 .build();
 
