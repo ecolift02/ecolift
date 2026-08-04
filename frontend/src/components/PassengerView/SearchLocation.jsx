@@ -13,6 +13,24 @@ export default function SearchLocation({
   const timeoutRef = useRef(null);
   const suppressNextQueryRef = useRef(false);
 
+  // 1. Create a ref to detect outside clicks
+  const wrapperRef = useRef(null);
+
+  // 2. Add useEffect to handle clicks outside the component
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // If click is outside this component, clear results to hide dropdown
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setResults([]);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     if (value && typeof value === "object" && value.display_name) {
       setQuery(value.display_name);
@@ -73,7 +91,8 @@ export default function SearchLocation({
   };
 
   return (
-    <div className="relative">
+    // 3. Attach the ref to the outermost div
+    <div className="relative" ref={wrapperRef}>
       <MapPin className="absolute left-3 top-3 text-gray-500" size={20} />
 
       <input

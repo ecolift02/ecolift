@@ -131,7 +131,7 @@ const Register = () => {
       // 2. Prepare final data payload
       const finalSubmissionData = {
         ...formData,
-        profileImageUrl: uploadedImageUrl,
+        profilePictureUrl: uploadedImageUrl,
       };
 
       // 3. Send to your Spring Boot Backend
@@ -139,15 +139,23 @@ const Register = () => {
 
       navigate("/verify-otp", { state: { email: finalSubmissionData.email } });
     } catch (err) {
+      const backendMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Something went wrong during registration.";
       setErrors((prev) => ({
         ...prev,
-        global: err.message || "Something went wrong during registration.",
+        global: backendMessage,
       }));
     } finally {
       setLoading(false);
     }
   };
-
+  const isFormValid =
+    NAME_REGEX.test(formData.name) &&
+    EMAIL_REGEX.test(formData.email) &&
+    PHONE_REGEX.test(formData.phone) &&
+    PASSWORD_REGEX.test(formData.password);
   return (
     <main className="flex min-h-screen w-full relative">
       <div className="absolute top-6 right-6 z-50">
@@ -247,6 +255,7 @@ const Register = () => {
                   </span>
                 )}
               </div>
+
               <div className="flex gap-4">
                 {/* Standard File Upload */}
                 <label className="cursor-pointer text-sm font-medium text-green-700 hover:text-green-800 bg-green-50 px-3 py-1.5 rounded-full transition">
@@ -271,6 +280,9 @@ const Register = () => {
                   />
                 </label>
               </div>
+              <p className="text-xs text-gray-500">
+                Image Size should be less than 2MB
+              </p>
             </div>
 
             {/* Full Name */}
@@ -431,7 +443,7 @@ const Register = () => {
             {/* Create Account Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid}
               className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}
