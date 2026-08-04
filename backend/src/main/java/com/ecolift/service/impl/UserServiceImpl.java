@@ -194,4 +194,11 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
+    @Override
+    public User updateProfilePicture(Long userId, String pictureUrl) {
+        User user = findById(userId);
+        user.setProfilePictureUrl(pictureUrl);
+        return userRepository.save(user);
+    }
 }

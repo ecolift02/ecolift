@@ -229,6 +229,31 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles SMTP/email delivery failures distinctly from the generic
+     * fallback, so misconfigured mail credentials show a clear, actionable
+     * message instead of "please contact support".
+     */
+    @ExceptionHandler(EmailSendException.class)
+    public ResponseEntity<ErrorResponse> handleEmailSendException(
+            EmailSendException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.SERVICE_UNAVAILABLE, request);
+    }
+
+    /**
+     * Handles invalid/unsupported uploaded files (wrong type, too large) -
+     * used by the profile picture upload endpoint.
+     */
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidFileException(
+            InvalidFileException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    /**
      * Handles RBAC Security failures (@PreAuthorize rejections).
      */
     @ExceptionHandler(AccessDeniedException.class)
@@ -274,7 +299,7 @@ public class GlobalExceptionHandler {
             Exception ex, 
             HttpServletRequest request
     ) {
-        log.error("Unhandled exception", ex);
+        log.error("Unhandled exception on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

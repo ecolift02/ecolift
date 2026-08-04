@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../api/supabaseClient"; // Adjust path to your Supabase client
-import { registerUser } from "../../api/authApi";
+import { registerUser } from "../../api/authService";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -137,6 +137,10 @@ const Register = () => {
       // 3. Send to your Spring Boot Backend
       await registerUser(finalSubmissionData);
 
+      // Registration no longer returns a JWT directly - the account is
+      // created as unverified and an OTP is emailed. Send the user to the
+      // verification screen; VerifyOtp.jsx logs them in once the OTP is
+      // confirmed.
       navigate("/verify-otp", { state: { email: finalSubmissionData.email } });
     } catch (err) {
       const backendMessage =

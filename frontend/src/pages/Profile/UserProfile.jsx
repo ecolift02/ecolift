@@ -95,7 +95,7 @@ const UserProfile = () => {
 
           {!loading && !loadError && profile && (
             <>
-              <ProfileHeader profile={profile} />
+              <ProfileHeader profile={profile} onPictureUpdated={setProfile} />
 
               {isEditing ? (
                 <EditProfileForm

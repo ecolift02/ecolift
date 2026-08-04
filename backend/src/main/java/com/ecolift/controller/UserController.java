@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +34,7 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final com.ecolift.service.FileStorageService fileStorageService;
     // Added for the Profile module's account-statistics section - all three
     // are existing services, reused as-is (no new repository queries).
     private final BookingService bookingService;
@@ -89,6 +91,22 @@ public class UserController {
      * the login identifier and currentMode has its own dedicated endpoint
      * above, so neither belongs in this generic profile-edit form.
      */
+    /**
+     * Handles clicking the profile picture and choosing a new image.
+     * multipart/form-data with a single "file" part. Saves to disk via
+     * FileStorageService, then persists just the resulting URL.
+     */
+    @PostMapping(value = "/profile/picture", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProfileResponse> uploadProfilePicture(
+            @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            Authentication authentication
+    ) {
+        User currentUser = resolveCurrentUser(authentication);
+        String pictureUrl = fileStorageService.storeProfilePicture(file, currentUser.getId());
+        User updated = userService.updateProfilePicture(currentUser.getId(), pictureUrl);
+        return ResponseEntity.ok(toProfileResponse(updated));
+    }
+
     @PutMapping("/profile")
     public ResponseEntity<ProfileResponse> updateProfile(
             @Valid @RequestBody UpdateProfileRequest request,

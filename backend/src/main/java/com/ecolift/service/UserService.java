@@ -25,4 +25,8 @@ public interface UserService {
     // Added for the User Profile module.
     User getProfile(Long userId);
     void changePassword(Long userId, String currentPassword, String newPassword);
+
+    // Added for profile picture upload - updates only profilePictureUrl,
+    // leaving name/phone/gender/dateOfBirth untouched.
+    User updateProfilePicture(Long userId, String pictureUrl);
 }
