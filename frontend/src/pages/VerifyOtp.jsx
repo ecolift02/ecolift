@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyOtp, resendOtp } from "../api/authApi";
+import { useAuth } from "../context/AuthContext";
 
 export default function VerifyOtp() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
   const email = location.state?.email || new URLSearchParams(location.search).get("email") || "";
 
   const [digits, setDigits] = useState(Array(6).fill(""));
@@ -45,10 +47,7 @@ export default function VerifyOtp() {
     setLoading(true);
     try {
       const { data } = await verifyOtp(email, otp);
-      localStorage.setItem("jwt_token", data.token);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user_data", JSON.stringify({ email: data.email, name: data.name, roles: data.roles }));
-      localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name, roles: data.roles }));
+      login({ email: data.email, name: data.name, roles: data.roles }, data.token);
       navigate("/");
     } catch (err) {
       const msg = err.response?.data?.message || "Verification failed. Please try again.";

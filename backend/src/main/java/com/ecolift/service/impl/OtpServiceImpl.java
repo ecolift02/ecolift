@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ecolift.entity.OtpPurpose;
 import com.ecolift.entity.OtpToken;
 import com.ecolift.exception.InvalidOtpException;
+import com.ecolift.exception.OtpAlreadyUsedException;
+import com.ecolift.exception.OtpExpiredException;
+import com.ecolift.exception.TooManyOtpAttemptsException;
 import com.ecolift.repository.OtpTokenRepository;
 import com.ecolift.service.EmailService;
 import com.ecolift.service.OtpService;
@@ -68,12 +71,16 @@ public class OtpServiceImpl implements OtpService {
                 .orElseThrow(() -> new InvalidOtpException(
                         "No active OTP found for this email. Please request a new one."));
 
+        if (Boolean.TRUE.equals(token.getUsed())) {
+            throw new OtpAlreadyUsedException("This OTP has already been used. Please request a new one.");
+        }
+
         if (token.getAttemptCount() >= MAX_ATTEMPTS) {
-            throw new InvalidOtpException("Too many incorrect attempts. Please request a new OTP.");
+            throw new TooManyOtpAttemptsException("Too many incorrect attempts. Please request a new OTP.");
         }
 
         if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new InvalidOtpException("This OTP has expired. Please request a new one.");
+            throw new OtpExpiredException("This OTP has expired. Please request a new one.");
         }
 
         if (!token.getOtpCode().equals(otp)) {
