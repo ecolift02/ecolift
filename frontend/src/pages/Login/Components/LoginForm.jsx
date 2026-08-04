@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom"; 
 // 1. Import the useAuth hook from your context file (Adjust the path if needed)
 import { useAuth } from "../../../context/AuthContext"; 
+import { loginUser } from "../../../api/authApi";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -89,19 +90,7 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8083/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
-
-      const data = await response.json();
+      const { data } = await loginUser({ email, password });
 
       // Assuming 'data' contains the user info and 'data.token' is the JWT.
       login(data, data.token);
@@ -109,10 +98,24 @@ const LoginForm = () => {
       // Redirect to the home page (or dashboard)
       navigate("/");
     } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        global: err.message || "Failed to login. Please try again.",
-      }));
+      if (err.response?.status === 403) {
+        setErrors((prev) => ({
+          ...prev,
+          global: (
+            <>
+              {err.response?.data?.message || "Please verify your email first."}{" "}
+              <Link to="/verify-otp" state={{ email }} className="font-semibold underline">
+                Verify now
+              </Link>
+            </>
+          ),
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          global: err.response?.data?.message || "Failed to login. Please try again.",
+        }));
+      }
     } finally {
       setLoading(false);
     }
@@ -205,6 +208,12 @@ const LoginForm = () => {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+
+          <div className="text-center">
+            <Link to="/forgot-password" className="text-sm text-green-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </form>
 
         {/* Footer */}
