@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../api/supabaseClient"; // Adjust path to your Supabase client
+import { registerUser } from "../../api/authApi";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -134,29 +135,9 @@ const Register = () => {
       };
 
       // 3. Send to your Spring Boot Backend
-      const response = await fetch("http://localhost:8083/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(finalSubmissionData),
-      });
+      await registerUser(finalSubmissionData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Registration failed. Please try again.",
-        );
-      }
-
-      const data = await response.json();
-
-      if (data.token) {
-        const { token, email, name, roles } = data;
-        login({ email, name, roles }, token);
-      }
-
-      navigate("/");
+      navigate("/verify-otp", { state: { email: finalSubmissionData.email } });
     } catch (err) {
       setErrors((prev) => ({
         ...prev,

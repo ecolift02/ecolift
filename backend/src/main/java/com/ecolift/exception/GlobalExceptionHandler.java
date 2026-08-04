@@ -2,8 +2,10 @@ package com.ecolift.exception;
 
 import com.ecolift.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -146,6 +149,29 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles invalid/expired/already-used OTP codes (register verification
+     * and forgot-password flows).
+     */
+    @ExceptionHandler(InvalidOtpException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidOtpException(
+            InvalidOtpException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    /**
+     * Handles login attempts before the user has confirmed their email OTP.
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerifiedException(
+            EmailNotVerifiedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
+    }
+
+    /**
      * Handles RBAC Security failures (@PreAuthorize rejections).
      */
     @ExceptionHandler(AccessDeniedException.class)
@@ -165,6 +191,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Thrown by EmailServiceImpl when SMTP send fails (bad credentials, network,
+     * etc). Surfaced separately from the generic handler so registration/OTP
+     * failures are debuggable instead of showing a vague "contact support".
+     */
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<ErrorResponse> handleMailException(
+            MailException ex,
+            HttpServletRequest request
+    ) {
+        log.error("Email send failed: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                new RuntimeException("We couldn't send the verification email right now. "
+                        + "Please check the SMTP configuration or try again shortly."),
+                HttpStatus.SERVICE_UNAVAILABLE,
+                request);
+    }
+
+    /**
      * Fallback for all other unhandled exceptions.
      * Prevents raw stack traces from leaking to the frontend.
      */
@@ -173,6 +217,8 @@ public class GlobalExceptionHandler {
             Exception ex, 
             HttpServletRequest request
     ) {
+        log.error("Unhandled exception", ex);
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -180,9 +226,6 @@ public class GlobalExceptionHandler {
                 .message("An unexpected error occurred. Please contact support.")
                 .path(request.getRequestURI())
                 .build();
-
-        // Optional: Log the actual exception stack trace here using SLF4J
-        System.err.println("Unhandled Exception: " + ex.getMessage());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
