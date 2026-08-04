@@ -2,11 +2,11 @@ package com.ecolift.service.impl;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
-import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.ecolift.exception.EmailSendingFailedException;
 import com.ecolift.service.EmailService;
 
 import jakarta.mail.MessagingException;
@@ -55,10 +55,10 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
         } catch (MessagingException ex) {
             log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
-            throw new MailSendException("Failed to send email. Please try again later.", ex);
+            throw new EmailSendingFailedException("We couldn't send the verification email right now. Please try again shortly.");
         } catch (MailException ex) {
             log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
-            throw ex;
+            throw new EmailSendingFailedException("We couldn't send the verification email right now. Please try again shortly.");
         }
     }
 

@@ -7,6 +7,9 @@ import com.ecolift.entity.OtpPurpose;
 import com.ecolift.entity.Role;
 import com.ecolift.entity.User;
 import com.ecolift.entity.UserMode;
+import com.ecolift.exception.DuplicateEmailException;
+import com.ecolift.exception.EmailAlreadyVerifiedException;
+import com.ecolift.exception.EmailNotFoundException;
 import com.ecolift.exception.EmailNotVerifiedException;
 import com.ecolift.repository.RoleRepository;
 import com.ecolift.repository.UserRepository;
@@ -42,7 +45,7 @@ public class AuthService {
     public void register(RegisterRequest request) {
         // 1. Check if user already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email is already in use.");
+            throw new DuplicateEmailException("This email is already registered. Please use a different address or sign in.");
         }
 
         // 2. Resolve the role the user actually selected on the registration form
@@ -84,7 +87,7 @@ public class AuthService {
         otpService.verifyOtp(email, otp, OtpPurpose.REGISTER);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
         user.setEmailVerified(true);
         userRepository.save(user);
 
@@ -94,9 +97,9 @@ public class AuthService {
     /** Re-sends a registration OTP, e.g. if the first email was lost or expired. */
     public void resendRegistrationOtp(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new IllegalArgumentException("This account is already verified.");
+            throw new EmailAlreadyVerifiedException("This email is already verified. You can sign in directly.");
         }
         otpService.generateAndSendOtp(user.getEmail(), user.getName(), OtpPurpose.REGISTER);
     }
@@ -112,7 +115,7 @@ public class AuthService {
 
         // 2. Fetch user and generate JWT
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
 
         // 2b. Block login until the email has been verified via OTP.
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
@@ -139,7 +142,7 @@ public class AuthService {
         otpService.verifyOtp(email, otp, OtpPurpose.RESET_PASSWORD);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -149,7 +152,7 @@ public class AuthService {
      */
     public AuthResponse refreshToken(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
         return generateAuthResponse(user);
     }
 

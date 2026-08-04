@@ -171,6 +171,63 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
     }
 
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmailException(
+            DuplicateEmailException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.CONFLICT, request);
+    }
+
+    @ExceptionHandler(EmailNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotFoundException(
+            EmailNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(EmailAlreadyVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyVerifiedException(
+            EmailAlreadyVerifiedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.CONFLICT, request);
+    }
+
+    @ExceptionHandler(OtpExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleOtpExpiredException(
+            OtpExpiredException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(OtpAlreadyUsedException.class)
+    public ResponseEntity<ErrorResponse> handleOtpAlreadyUsedException(
+            OtpAlreadyUsedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(TooManyOtpAttemptsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyOtpAttemptsException(
+            TooManyOtpAttemptsException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.TOO_MANY_REQUESTS, request);
+    }
+
+    @ExceptionHandler(EmailSendingFailedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailSendingFailedException(
+            EmailSendingFailedException ex,
+            HttpServletRequest request
+    ) {
+        log.error("Email send failed: {}", ex.getMessage(), ex);
+        return buildErrorResponse(ex, HttpStatus.SERVICE_UNAVAILABLE, request);
+    }
+
     /**
      * Handles RBAC Security failures (@PreAuthorize rejections).
      */
