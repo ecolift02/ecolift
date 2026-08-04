@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 // 1. Import the useAuth hook from your context file (Adjust the path if needed)
 import { useAuth } from "../../../context/AuthContext";
 import { loginUser } from "../../../api/authApi";
@@ -20,6 +20,9 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  // Shown after a successful password reset (see ForgotPassword.jsx redirect).
+  const infoMessage = location.state?.infoMessage;
   const { login } = useAuth();
 
   // Regex Patterns
@@ -113,28 +116,14 @@ const LoginForm = () => {
       navigate("/");
     } catch (err) {
       if (err.response?.status === 403) {
-        setErrors((prev) => ({
-          ...prev,
-          global: (
-            <>
-              {err.response?.data?.message || "Please verify your email first."}{" "}
-              <Link
-                to="/verify-otp"
-                state={{ email }}
-                className="font-semibold underline"
-              >
-                Verify now
-              </Link>
-            </>
-          ),
-        }));
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          global:
-            err.response?.data?.message || "Failed to login. Please try again.",
-        }));
+        navigate("/verify-otp", { state: { email } });
+        return;
       }
+      setErrors((prev) => ({
+        ...prev,
+        global:
+          err.response?.data?.message || "Failed to login. Please try again.",
+      }));
     } finally {
       setLoading(false);
     }
@@ -164,6 +153,12 @@ const LoginForm = () => {
         <p className="text-gray-500 mb-8">
           Enter your credentials to access your dashboard
         </p>
+
+        {infoMessage && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+            {infoMessage}
+          </div>
+        )}
 
         {/* Global Error Message Display */}
         {errors.global && (
@@ -195,7 +190,12 @@ const LoginForm = () => {
 
           {/* Password */}
           <div>
-            <label className="block mb-1 font-medium">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-medium">Password</label>
+              <Link to="/forgot-password" className="text-sm text-green-700 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}

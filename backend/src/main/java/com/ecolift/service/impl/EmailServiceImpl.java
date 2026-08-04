@@ -3,6 +3,8 @@ package com.ecolift.service.impl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
+
+import com.ecolift.exception.EmailSendException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -54,11 +56,22 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlBody, true);
             mailSender.send(message);
         } catch (MessagingException ex) {
+            // Log the FULL underlying cause server-side (e.g. "535 Authentication
+            // failed" from Gmail) so it's actually debuggable from the console,
+            // while the client only ever sees the safe message below.
             log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
-            throw new EmailSendingFailedException("We couldn't send the verification email right now. Please try again shortly.");
+            throw new EmailSendException(
+                    "We couldn't send the verification email right now. Please check your "
+                            + "SMTP configuration (spring.mail.username / spring.mail.password) "
+                            + "or try again shortly.",
+                    ex);
         } catch (MailException ex) {
             log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
-            throw new EmailSendingFailedException("We couldn't send the verification email right now. Please try again shortly.");
+            throw new EmailSendException(
+                    "We couldn't send the verification email right now. Please check your "
+                            + "SMTP configuration (spring.mail.username / spring.mail.password) "
+                            + "or try again shortly.",
+                    ex);
         }
     }
 
