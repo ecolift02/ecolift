@@ -137,6 +137,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
     }
 
+    @ExceptionHandler(ChatAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleChatAccessDeniedException(
+            ChatAccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, request);
+    }
+
     /**
      * Handles payment processing failures.
      */

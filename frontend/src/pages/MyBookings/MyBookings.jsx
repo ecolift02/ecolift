@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   CalendarClock,
   MapPin,
@@ -188,8 +188,16 @@ const MyBookings = () => {
                       </span>
                     </div>
 
-                    {isCancellable(booking.status) && !isConfirmingCancel && (
-                      <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                      {booking.status === "CONFIRMED" && (
+                        <Link
+                          to={`/inbox/${booking.id}`}
+                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                          Message
+                        </Link>
+                      )}
+                      {isCancellable(booking.status) && !isConfirmingCancel && (
                         <button
                           onClick={() => {
                             setCancellingId(booking.id);
@@ -200,8 +208,9 @@ const MyBookings = () => {
                           <X className="h-4 w-4" />
                           Cancel Booking
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
 
                     {isConfirmingCancel && (
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 p-4">
