@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
 import { getProfile } from "../../api/userApi";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout, currentMode, updateCurrentMode, user } =
     useAuth();
+  const { totalUnread } = useChat();
   const location = useLocation();
 
   // States
@@ -118,6 +120,15 @@ const Navbar = () => {
           ) : (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               {/* Eco Stats Pill */}
+
+              <Link to="/inbox" className="relative rounded-full border border-green-200 p-2 text-green-700 hover:bg-green-50">
+                <span className="material-symbols-outlined">mail</span>
+                {totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold text-white">
+                    {totalUnread}
+                  </span>
+                )}
+              </Link>
 
               <div className="hidden md:flex items-center gap-2">
                 {user?.roles?.includes("ADMIN") && (

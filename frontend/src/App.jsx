@@ -22,9 +22,13 @@ import AdminUsers from "./pages/Admin/AdminUsers";
 import AdminVehicles from "./pages/Admin/AdminVehicles";
 import AdminRides from "./pages/Admin/AdminRides";
 import AdminBookings from "./pages/Admin/AdminBookings";
+import Inbox from "./pages/Inbox/Inbox";
+import ConversationPage from "./pages/Inbox/ConversationPage";
+import { ChatProvider } from "./context/ChatContext";
 function App() {
   return (
     <AuthProvider>
+      <ChatProvider>
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
@@ -45,6 +49,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/bookings/my" element={<MyBookings />} />
+            <Route path="/inbox" element={<Inbox />} />
+            <Route path="/inbox/:bookingId" element={<ConversationPage />} />
           </Route>
 
           {/* Protected Routes: DRIVERS only */}
@@ -71,6 +77,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ChatProvider>
     </AuthProvider>
   );
 }
