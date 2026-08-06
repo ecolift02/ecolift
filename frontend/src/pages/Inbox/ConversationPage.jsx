@@ -6,6 +6,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
+import CallButton from "../../components/Call/CallButton";
+import CallScreen from "../../components/Call/CallScreen";
+import { cleanupAgoraCall, initializeAgoraCall } from "../../services/agoraCall";
 
 const formatTimestamp = (value) => {
   if (!value) return "";
@@ -40,6 +43,11 @@ const ConversationPage = () => {
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
+  const [callInvite, setCallInvite] = useState(null);
+  const [isCallConnected, setIsCallConnected] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [callSession, setCallSession] = useState(null);
+  const [isConnectingCall, setIsConnectingCall] = useState(false); // NEW: guard against double-fire
 
   useEffect(() => {
     setActiveBookingId(bookingId);
@@ -75,6 +83,7 @@ const ConversationPage = () => {
     let messageSub = null;
     let editedSub = null;
     let deletedSub = null;
+    let callSub = null;
     let prevOnConnect = null;
     let wrappedOnConnect = false;
 
@@ -147,12 +156,24 @@ const ConversationPage = () => {
       }
     };
 
+    const handleCallInvite = (message) => {
+      try {
+        const payload = JSON.parse(message.body);
+        if (!payload?.bookingId || !payload?.caller) return;
+        if (String(payload.bookingId) !== String(bookingId)) return;
+        setCallInvite(payload);
+      } catch (e) {
+        console.warn("Failed to parse call invite", e);
+      }
+    };
+
     const subscribeAll = () => {
       try {
         if (!statusSub) statusSub = socket.subscribe(`/topic/chat/${bookingId}/status`, handleStatusUpdate);
         if (!messageSub) messageSub = socket.subscribe(`/topic/chat/${bookingId}`, handleIncomingMessage);
         if (!editedSub) editedSub = socket.subscribe(`/topic/chat/${bookingId}/edited`, handleEditedUpdate);
         if (!deletedSub) deletedSub = socket.subscribe(`/topic/chat/${bookingId}/deleted`, handleDeletedUpdate);
+        if (!callSub) callSub = socket.subscribe(`/topic/chat/${bookingId}/call`, handleCallInvite);
       } catch (e) {
         console.warn("Failed to subscribe to chat topics", e);
       }
@@ -192,6 +213,11 @@ const ConversationPage = () => {
       }
       try {
         deletedSub?.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        callSub?.unsubscribe();
       } catch (e) {
         /* ignore */
       }
@@ -256,6 +282,66 @@ const ConversationPage = () => {
     } catch (error) {
       console.error("Failed to delete message", error);
     }
+  };
+
+  const sendCallInvite = async () => {
+    // Guard: block double-fire from rapid clicks or duplicate handlers
+    if (isConnectingCall || isCallConnected) return;
+    setIsConnectingCall(true);
+    console.log("Call button clicked");
+
+    if (!socket || !bookingId || !user) {
+      setIsConnectingCall(false);
+      return;
+    }
+    const currentUserInfo = {
+      userId: normalizeId(user?._id ?? user?.id ?? user?.userId ?? user?.user?._id),
+      name: user?.name ?? user?.email ?? "You",
+    };
+    try {
+      const session = await initializeAgoraCall({
+        roomId: bookingId,
+        userId: currentUserInfo.userId || `user-${Date.now()}`,
+        userName: currentUserInfo.name,
+      });
+      setCallSession(session);
+      setIsCallConnected(true);
+      socket.publish({
+        destination: `/app/chat.call/${bookingId}`,
+        body: JSON.stringify({ bookingId, caller: currentUserInfo }),
+      });
+    } catch (error) {
+      console.error("Failed to start call", error);
+    } finally {
+      setIsConnectingCall(false);
+    }
+  };
+
+  const handleAcceptCall = async () => {
+    if (isConnectingCall || isCallConnected) return;
+    setIsConnectingCall(true);
+    try {
+      const currentUserInfo = {
+        userId: normalizeId(user?._id ?? user?.id ?? user?.userId ?? user?.user?._id),
+        name: user?.name ?? user?.email ?? "You",
+      };
+      const session = await initializeAgoraCall({
+        roomId: bookingId,
+        userId: currentUserInfo.userId || `user-${Date.now()}`,
+        userName: currentUserInfo.name,
+      });
+      setCallSession(session);
+      setIsCallConnected(true);
+      setCallInvite(null);
+    } catch (error) {
+      console.error("Failed to connect call", error);
+    } finally {
+      setIsConnectingCall(false);
+    }
+  };
+
+  const handleDeclineCall = () => {
+    setCallInvite(null);
   };
 
   const otherUserName = useMemo(() => {
@@ -334,13 +420,34 @@ const ConversationPage = () => {
                   <p className="text-sm text-slate-500">{otherPartyRole}</p>
                 </div>
               </div>
-              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Chat
-              </span>
+              <div className="flex items-center gap-2">
+                {callInvite && (
+                  <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    Incoming call from {callInvite.caller?.name || "someone"}
+                  </div>
+                )}
+                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <span>Chat</span>
+                  <CallButton
+                    onClick={sendCallInvite}
+                    label={isConnectingCall ? "Calling..." : "Call"}
+                    disabled={isConnectingCall || isCallConnected}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="flex h-[calc(100vh-16rem)] max-h-[calc(100vh-16rem)] flex-col overflow-hidden px-5 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              {callInvite && (
+                <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                  <span>Incoming call from {callInvite.caller?.name || "someone"}</span>
+                  <button type="button" onClick={handleAcceptCall} className="rounded-full bg-emerald-600 px-2 py-1 text-[11px] text-white">Accept</button>
+                  <button type="button" onClick={handleDeclineCall} className="rounded-full bg-slate-600 px-2 py-1 text-[11px] text-white">Decline</button>
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="flex-1">
                 <p className="text-sm text-slate-500">Loading messages...</p>
@@ -472,6 +579,22 @@ const ConversationPage = () => {
               </div>
             )}
           </div>
+
+          {isCallConnected && (
+            <CallScreen
+              isConnected={isCallConnected}
+              onConnect={() => setIsCallConnected(true)}
+              onMuteToggle={() => setIsMuted((prev) => !prev)}
+              muted={isMuted}
+              onEndCall={async () => {
+                if (callSession) {
+                  await cleanupAgoraCall(callSession);
+                  setCallSession(null);
+                }
+                setIsCallConnected(false);
+              }}
+            />
+          )}
 
           <form onSubmit={handleSend} className="border-t border-slate-200 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
