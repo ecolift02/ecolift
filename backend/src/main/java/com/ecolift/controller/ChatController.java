@@ -13,6 +13,10 @@ import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 import java.util.Objects;
 
 @Controller
@@ -30,6 +34,7 @@ public class ChatController {
                       Principal principal) {
         ChatMessageResponse saved = chatService.sendMessage(bookingId, principal.getName(), request.getContent());
 
+        messagingTemplate.convertAndSend("/topic/chat/" + bookingId, saved);
         messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/messages", saved);
 
         Booking booking = bookingRepository.findById(bookingId)
@@ -42,5 +47,57 @@ public class ChatController {
             messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/inbox-update", saved);
         }
         messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/inbox-update", saved);
+    }
+
+    @MessageMapping("/chat.message-delivered/{bookingId}")
+    public void messageDelivered(@DestinationVariable Long bookingId,
+                                 Principal principal,
+                                 @Payload Long messageId) {
+        chatService.updateMessageStatus(messageId, com.ecolift.entity.MessageStatus.DELIVERED);
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found."));
+        User sender = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        User otherParticipant = Objects.equals(booking.getPassenger().getId(), sender.getId())
+                ? booking.getRide().getDriver()
+                : booking.getPassenger();
+
+        Map<String, Object> payload = Map.of("messageId", messageId, "status", "delivered", "bookingId", bookingId);
+        messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/status", payload);
+
+        if (otherParticipant != null) {
+            messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/message-status-update", payload);
+        }
+    }
+
+    @MessageMapping("/chat.mark-as-seen/{bookingId}")
+    public void markAsSeen(@DestinationVariable Long bookingId,
+                           Principal principal) {
+        List<Long> seenIds = chatService.markAsSeen(bookingId, principal.getName());
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found."));
+        User sender = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        User otherParticipant = Objects.equals(booking.getPassenger().getId(), sender.getId())
+                ? booking.getRide().getDriver()
+                : booking.getPassenger();
+
+                List<Map<String, Object>> payloads = seenIds.stream()
+                                .map(messageId -> {
+                                        Map<String, Object> m = new HashMap<>();
+                                        m.put("messageId", messageId);
+                                        m.put("status", "seen");
+                                        m.put("bookingId", bookingId);
+                                        return m;
+                                })
+                                .collect(Collectors.toList());
+
+                payloads.forEach(payload -> messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/status", payload));
+
+                if (otherParticipant != null) {
+                        payloads.forEach(payload -> messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/message-status-update", payload));
+                }
     }
 }

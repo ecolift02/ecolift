@@ -19,4 +19,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Modifying
     @Query("update ChatMessage cm set cm.isRead = true where cm.booking.id = :bookingId and cm.sender.id <> :currentUserId")
     void markAsReadByBookingAndSenderNot(@Param("bookingId") Long bookingId, @Param("currentUserId") Long currentUserId);
+
+    @Modifying
+    @Query("update ChatMessage cm set cm.status = com.ecolift.entity.MessageStatus.SEEN, cm.isRead = true where cm.booking.id = :bookingId and cm.sender.id <> :currentUserId and cm.status <> com.ecolift.entity.MessageStatus.SEEN")
+    int markAsSeenByBookingAndSenderNot(@Param("bookingId") Long bookingId, @Param("currentUserId") Long currentUserId);
+
+    @Query("select cm.id from ChatMessage cm where cm.booking.id = :bookingId and cm.sender.id <> :currentUserId and cm.status <> com.ecolift.entity.MessageStatus.SEEN")
+    List<Long> findUnseenIdsByBookingAndSenderNot(@Param("bookingId") Long bookingId, @Param("currentUserId") Long currentUserId);
 }

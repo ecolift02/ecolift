@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 import com.ecolift.dto.response.ConversationSummaryResponse;
 import com.ecolift.entity.Booking;
 import com.ecolift.entity.ChatMessage;
+import com.ecolift.entity.MessageStatus;
 import com.ecolift.entity.User;
 import com.ecolift.exception.ChatAccessDeniedException;
 import com.ecolift.exception.ResourceNotFoundException;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -46,10 +48,40 @@ public class ChatServiceImpl implements ChatService {
                 .content(content)
                 .sentAt(LocalDateTime.now())
                 .isRead(false)
+                .status(MessageStatus.SENT)
                 .build();
 
         ChatMessage saved = chatMessageRepository.save(message);
         return toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public ChatMessageResponse editMessage(Long messageId, String senderEmail, String content) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found."));
+        User sender = userRepository.findByEmail(senderEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        ensureMessageOwner(message, sender);
+        ensureEditableWithinWindow(message);
+
+        message.setContent(content);
+        message.setEdited(true);
+        return toResponse(chatMessageRepository.save(message));
+    }
+
+    @Override
+    @Transactional
+    public ChatMessageResponse deleteMessage(Long messageId, String senderEmail) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found."));
+        User sender = userRepository.findByEmail(senderEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        ensureMessageOwner(message, sender);
+        message.setDeleted(true);
+        return toResponse(chatMessageRepository.save(message));
     }
 
     @Override
@@ -103,6 +135,25 @@ public class ChatServiceImpl implements ChatService {
         chatMessageRepository.markAsReadByBookingAndSenderNot(bookingId, user.getId());
     }
 
+    @Override
+    @Transactional
+    public List<Long> markAsSeen(Long bookingId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found."));
+
+        if (!Objects.equals(booking.getPassenger().getId(), user.getId()) && !Objects.equals(booking.getRide().getDriver().getId(), user.getId())) {
+            throw new ChatAccessDeniedException("You are not part of this conversation.");
+        }
+
+        List<Long> unseenIds = chatMessageRepository.findUnseenIdsByBookingAndSenderNot(bookingId, user.getId());
+        if (!unseenIds.isEmpty()) {
+            chatMessageRepository.markAsSeenByBookingAndSenderNot(bookingId, user.getId());
+        }
+        return unseenIds;
+    }
+
     private void ensureParticipantAndUnlocked(Booking booking, User user) {
         boolean isParticipant = Objects.equals(booking.getPassenger().getId(), user.getId())
                 || Objects.equals(booking.getRide().getDriver().getId(), user.getId());
@@ -112,6 +163,19 @@ public class ChatServiceImpl implements ChatService {
 
         if (booking.getStatus() != Booking.BookingStatus.CONFIRMED) {
             throw new ChatAccessDeniedException("Chat unlocks once the booking is confirmed.");
+        }
+    }
+
+    private void ensureMessageOwner(ChatMessage message, User requester) {
+        if (!Objects.equals(message.getSender().getId(), requester.getId())) {
+            throw new ChatAccessDeniedException("You can only edit or delete your own messages.");
+        }
+    }
+
+    private void ensureEditableWithinWindow(ChatMessage message) {
+        long ageMillis = Duration.between(message.getSentAt(), LocalDateTime.now()).toMillis();
+        if (ageMillis > 2 * 60 * 1000L) {
+            throw new ChatAccessDeniedException("This message can no longer be edited.");
         }
     }
 
@@ -141,6 +205,21 @@ public class ChatServiceImpl implements ChatService {
                 .content(message.getContent())
                 .sentAt(message.getSentAt())
                 .isRead(message.getIsRead())
+                .edited(message.getEdited())
+                .deleted(message.getDeleted())
+                .status(message.getStatus() != null ? message.getStatus().name().toLowerCase() : MessageStatus.SENT.name().toLowerCase())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateMessageStatus(Long messageId, MessageStatus status) {
+        ChatMessage chatMessage = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found."));
+        chatMessage.setStatus(status);
+        if (status == MessageStatus.SEEN) {
+            chatMessage.setIsRead(true);
+        }
+        chatMessageRepository.save(chatMessage);
     }
 }
