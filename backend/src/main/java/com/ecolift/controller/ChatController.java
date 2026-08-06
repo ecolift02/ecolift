@@ -100,4 +100,26 @@ public class ChatController {
                         payloads.forEach(payload -> messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/message-status-update", payload));
                 }
     }
+
+    @MessageMapping("/chat.call/{bookingId}")
+    public void handleCallInvite(@DestinationVariable Long bookingId,
+                                 @Payload Map<String, Object> payload,
+                                 Principal principal) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found."));
+        User sender = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        User otherParticipant = Objects.equals(booking.getPassenger().getId(), sender.getId())
+                ? booking.getRide().getDriver()
+                : booking.getPassenger();
+
+        if (otherParticipant != null) {
+            Map<String, Object> invite = new HashMap<>();
+            invite.put("bookingId", bookingId);
+            invite.put("caller", payload.get("caller"));
+            invite.put("roomId", String.valueOf(bookingId));
+            messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/call", invite);
+            messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/call-invite", invite);
+        }
+    }
 }

@@ -44,7 +44,14 @@ export const ChatProvider = ({ children }) => {
           if (existing) {
             return prev.map((item) =>
               item.bookingId === payload.bookingId
-                ? { ...item, lastMessage: payload.content, lastMessageAt: payload.sentAt, unreadCount: item.unreadCount + (senderId !== currentUserId ? 1 : 0) }
+                ? {
+                    ...item,
+                    lastMessage: payload.content,
+                    lastMessageAt: payload.sentAt,
+                    unreadCount: senderId !== currentUserId && item.bookingId !== activeBookingId
+                      ? item.unreadCount + 1
+                      : item.unreadCount,
+                  }
                 : item,
             );
           }
