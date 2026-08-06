@@ -33,4 +33,17 @@ public class ChatMessage {
 
     @Builder.Default
     private Boolean isRead = false;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean edited = false;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean deleted = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private MessageStatus status = MessageStatus.SENT;
 }

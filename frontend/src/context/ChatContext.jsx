@@ -9,6 +9,7 @@ export const ChatProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [activeBookingId, setActiveBookingId] = useState(null);
+  const [socket, setSocket] = useState(null);
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, conversation) => sum + Number(conversation.unreadCount || 0), 0),
@@ -32,25 +33,33 @@ export const ChatProvider = ({ children }) => {
     }
     fetchConversations();
 
-    const socket = connectSocket(() => {
-      socket.subscribe("/user/queue/messages", (message) => {
+    const socketInstance = connectSocket(() => {
+      socketInstance.subscribe("/user/queue/messages", (message) => {
         const payload = JSON.parse(message.body);
+        const currentUserId = String(user?.id ?? user?._id ?? user?.userId ?? user?.user?._id ?? "");
+        const senderId = String(payload.senderId ?? payload.sender?._id ?? payload.sender?.id ?? payload.from ?? "");
+
         setConversations((prev) => {
           const existing = prev.find((item) => item.bookingId === payload.bookingId);
           if (existing) {
             return prev.map((item) =>
               item.bookingId === payload.bookingId
-                ? { ...item, lastMessage: payload.content, lastMessageAt: payload.sentAt, unreadCount: item.unreadCount + (payload.senderId !== user?.id ? 1 : 0) }
+                ? { ...item, lastMessage: payload.content, lastMessageAt: payload.sentAt, unreadCount: item.unreadCount + (senderId !== currentUserId ? 1 : 0) }
                 : item,
             );
           }
           return prev;
         });
+
+        if (payload.bookingId && payload.id && senderId && currentUserId && senderId !== currentUserId) {
+          socketInstance.send(`/app/chat.message-delivered/${payload.bookingId}`, {}, String(payload.id));
+        }
       });
-      socket.subscribe("/user/queue/inbox-update", () => {
+      socketInstance.subscribe("/user/queue/inbox-update", () => {
         fetchConversations();
       });
     });
+    setSocket(socketInstance);
 
     return () => {
       disconnectSocket();
@@ -69,10 +78,11 @@ export const ChatProvider = ({ children }) => {
       totalUnread,
       activeBookingId,
       setActiveBookingId,
+      socket,
       fetchConversations,
       sendMessage,
     }),
-    [conversations, totalUnread, activeBookingId, fetchConversations, sendMessage],
+    [conversations, totalUnread, activeBookingId, socket, fetchConversations, sendMessage],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
