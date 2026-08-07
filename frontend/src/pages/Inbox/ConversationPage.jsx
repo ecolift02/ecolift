@@ -105,6 +105,7 @@ const ConversationPage = () => {
     let editedSub = null;
     let deletedSub = null;
     let callSub = null;
+    let callEndedSub = null;
     let prevOnConnect = null;
     let wrappedOnConnect = false;
 
@@ -190,6 +191,22 @@ const ConversationPage = () => {
       }
     };
 
+    const handleCallEnded = async (message) => {
+      try {
+        const payload = JSON.parse(message.body);
+        if (!payload?.bookingId) return;
+        if (String(payload.bookingId) !== String(bookingId)) return;
+        if (callSession) {
+          await cleanupAgoraCall(callSession);
+          setCallSession(null);
+        }
+        setIsCallConnected(false);
+        setCallInvite(null);
+      } catch (e) {
+        console.warn("Failed to parse call ended message", e);
+      }
+    };
+
     const subscribeAll = () => {
       try {
         if (!statusSub) statusSub = socket.subscribe(`/topic/chat/${bookingId}/status`, handleStatusUpdate);
@@ -197,6 +214,7 @@ const ConversationPage = () => {
         if (!editedSub) editedSub = socket.subscribe(`/topic/chat/${bookingId}/edited`, handleEditedUpdate);
         if (!deletedSub) deletedSub = socket.subscribe(`/topic/chat/${bookingId}/deleted`, handleDeletedUpdate);
         if (!callSub) callSub = socket.subscribe(`/topic/chat/${bookingId}/call`, handleCallInvite);
+        if (!callEndedSub) callEndedSub = socket.subscribe(`/topic/chat/${bookingId}/call-ended`, handleCallEnded);
       } catch (e) {
         console.warn("Failed to subscribe to chat topics", e);
       }
@@ -241,6 +259,11 @@ const ConversationPage = () => {
       }
       try {
         callSub?.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        callEndedSub?.unsubscribe();
       } catch (e) {
         /* ignore */
       }
@@ -461,6 +484,21 @@ const ConversationPage = () => {
                     disabled={isConnectingCall || isCallConnected}
                   />
                 </div>
+                 {isCallConnected && (
+            <CallScreen
+              isConnected={isCallConnected}
+              onConnect={() => setIsCallConnected(true)}
+              onMuteToggle={() => setIsMuted((prev) => !prev)}
+              muted={isMuted}
+              onEndCall={async () => {
+                if (callSession) {
+                  await cleanupAgoraCall(callSession);
+                  setCallSession(null);
+                }
+                setIsCallConnected(false);
+              }}
+            />
+          )}
               </div>
             </div>
           </div>
@@ -607,21 +645,7 @@ const ConversationPage = () => {
             )}
           </div>
 
-          {isCallConnected && (
-            <CallScreen
-              isConnected={isCallConnected}
-              onConnect={() => setIsCallConnected(true)}
-              onMuteToggle={() => setIsMuted((prev) => !prev)}
-              muted={isMuted}
-              onEndCall={async () => {
-                if (callSession) {
-                  await cleanupAgoraCall(callSession);
-                  setCallSession(null);
-                }
-                setIsCallConnected(false);
-              }}
-            />
-          )}
+         
 
           <form onSubmit={handleSend} className="border-t border-slate-200 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

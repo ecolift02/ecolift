@@ -2,8 +2,6 @@ import { useRef, useState } from "react";
 import { Mail, Phone, CalendarClock, Camera, Loader2 } from "lucide-react";
 import { uploadProfilePicture } from "../../api/userApi";
 
-const DEFAULT_AVATAR =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDTXEqeXb5oMyQbf1hR_m59FLXF81K1UzNc300uKHMGjM_4kHPRyedHC2m4sirqtGwkISVtDsxdYa6FnhQJ_3RY5OskpVuPlEKu6NRYsEGQjQUCILUNSbCIpi8XbIW2PqJ-_yc6nwknNGb0bDskAn4_z6sCdeCsOaRjL0zYCKJ-lgjobRKMy7Rx_xVuOq60y31HjSDwRGQR9YgsJamE6F31g2kO8CY1Zidr6cdK7inh_bkIDXD8W78fcW2GT2edMpT6Q4yGHfD4ubw";
 
 const formatJoinedDate = (value) => {
   if (!value) return "—";
@@ -51,36 +49,47 @@ const ProfileHeader = ({ profile, onPictureUpdated }) => {
       setUploading(false);
     }
   };
+    const getInitial = () => {
+    const name = profile?.name || user?.name || "U";
+    return name.charAt(0).toUpperCase();
+  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
         <div className="relative shrink-0">
           <button
-            type="button"
-            onClick={handleAvatarClick}
-            disabled={uploading}
-            className="group relative block h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-md ring-1 ring-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            title="Click to change your profile picture"
-          >
-            <img
-              src={profile.profilePictureUrl || DEFAULT_AVATAR}
-              alt={profile.name || "Profile"}
-              className="h-full w-full object-cover"
-            />
-            {/* Hover / uploading overlay with a camera icon */}
-            <span
-              className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${
-                uploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-              }`}
-            >
-              {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
-              ) : (
-                <Camera className="h-6 w-6 text-white" />
-              )}
-            </span>
-          </button>
+  type="button"
+  onClick={handleAvatarClick}
+  disabled={uploading}
+  className="group relative block h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-md ring-1 ring-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  title="Click to change your profile picture"
+>
+  {profile.profilePictureUrl ? (
+    <img
+      src={profile.profilePictureUrl}
+      alt={profile.name || "Profile"}
+      className="h-full w-full object-cover"
+    />
+  ) : (
+    <span className="flex h-full w-full items-center justify-center bg-emerald-100 text-3xl font-semibold text-emerald-700">
+      {profile.name ? profile.name.charAt(0).toUpperCase() : "?"}
+    </span>
+  )}
+
+  {/* Hover / uploading overlay with a camera icon */}
+  <span
+    className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${
+      uploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+    }`}
+  >
+    {uploading ? (
+      <Loader2 className="h-6 w-6 animate-spin text-white" />
+    ) : (
+      <Camera className="h-6 w-6 text-white" />
+    )}
+  </span>
+</button>
           <input
             ref={fileInputRef}
             type="file"
