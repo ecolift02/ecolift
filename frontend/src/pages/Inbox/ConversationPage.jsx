@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../../api/axiosConfig";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
@@ -35,13 +35,14 @@ const getSenderId = (message) => {
 
 const ConversationPage = () => {
   const { bookingId } = useParams();
-  const { sendMessage, setActiveBookingId, socket } = useChat();
+  const { sendMessage, setActiveBookingId, socket, pendingIncomingCallAcceptBookingId, clearIncomingCall } = useChat();
   const { currentMode, user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [seenRequestSent, setSeenRequestSent] = useState(false);
   const messagesContainerRef = useRef(null);
+  const callStartTimeRef = useRef(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
@@ -50,6 +51,7 @@ const ConversationPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [callSession, setCallSession] = useState(null);
   const [isConnectingCall, setIsConnectingCall] = useState(false); // NEW: guard against double-fire
+  const navigate = useNavigate();
 
   useEffect(() => {
     setActiveBookingId(bookingId);
@@ -202,6 +204,7 @@ const ConversationPage = () => {
         }
         setIsCallConnected(false);
         setCallInvite(null);
+        addCallLogMessage(payload.callStatus, Number(payload.callDurationSeconds ?? 0));
       } catch (e) {
         console.warn("Failed to parse call ended message", e);
       }
@@ -330,6 +333,25 @@ const ConversationPage = () => {
     }
   };
 
+  const addCallLogMessage = (status, durationSeconds = 0) => {
+    const formattedDuration = new Date(durationSeconds * 1000).toISOString().substr(14, 5);
+    const content =
+      status === "ended"
+        ? `📞 Call ended · ${formattedDuration}`
+        : "📞 Missed call";
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `call-log-${Date.now()}`,
+        isCallLog: true,
+        content,
+        sentAt: new Date().toISOString(),
+      },
+    ]);
+    callStartTimeRef.current = null;
+  };
+
   const sendCallInvite = async () => {
     // Guard: block double-fire from rapid clicks or duplicate handlers
     if (isConnectingCall || isCallConnected) return;
@@ -340,11 +362,18 @@ const ConversationPage = () => {
       setIsConnectingCall(false);
       return;
     }
+
     const currentUserInfo = {
       userId: normalizeId(user?._id ?? user?.id ?? user?.userId ?? user?.user?._id),
       name: user?.name ?? user?.email ?? "You",
     };
+
     try {
+      socket.publish({
+        destination: `/app/chat.call/${bookingId}`,
+        body: JSON.stringify({ bookingId, caller: currentUserInfo }),
+      });
+
       const session = await initializeAgoraCall({
         roomId: bookingId,
         userId: currentUserInfo.userId || `user-${Date.now()}`,
@@ -352,12 +381,20 @@ const ConversationPage = () => {
       });
       setCallSession(session);
       setIsCallConnected(true);
-      socket.publish({
-        destination: `/app/chat.call/${bookingId}`,
-        body: JSON.stringify({ bookingId, caller: currentUserInfo }),
-      });
+      callStartTimeRef.current = Date.now();
     } catch (error) {
       console.error("Failed to start call", error);
+      window.alert("Could not connect audio. Check your network and try again.");
+      try {
+        const body = JSON.stringify({ bookingId, userId: currentUserInfo.userId });
+        if (typeof socket.publish === "function") {
+          socket.publish({ destination: `/app/chat.call.end/${bookingId}`, body });
+        } else if (typeof socket.send === "function") {
+          socket.send(`/app/chat.call.end/${bookingId}`, {}, body);
+        }
+      } catch (e) {
+        console.warn("failed sending call end after failed invite", e);
+      }
     } finally {
       setIsConnectingCall(false);
     }
@@ -378,6 +415,7 @@ const ConversationPage = () => {
       });
       setCallSession(session);
       setIsCallConnected(true);
+      callStartTimeRef.current = Date.now();
       setCallInvite(null);
     } catch (error) {
       console.error("Failed to connect call", error);
@@ -386,10 +424,29 @@ const ConversationPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (
+      pendingIncomingCallAcceptBookingId &&
+      bookingId &&
+      String(pendingIncomingCallAcceptBookingId) === String(bookingId)
+    ) {
+      handleAcceptCall();
+      clearIncomingCall();
+    }
+  }, [pendingIncomingCallAcceptBookingId, bookingId, clearIncomingCall]);
+
   const handleDeclineCall = () => {
     try {
       if (socket && socket.connected && callInvite) {
-        const body = JSON.stringify({ bookingId, userId: currentUserId });
+        const durationSeconds = callStartTimeRef.current
+          ? Math.max(0, Math.floor((Date.now() - callStartTimeRef.current) / 1000))
+          : 0;
+        const body = JSON.stringify({
+          bookingId,
+          userId: currentUserId,
+          callDurationSeconds: durationSeconds,
+          callStatus: "declined",
+        });
         if (typeof socket.publish === "function") {
           socket.publish({ destination: `/app/chat.call.end/${bookingId}`, body });
         } else if (typeof socket.send === "function") {
@@ -507,6 +564,9 @@ const ConversationPage = () => {
               muted={isMuted}
               onEndCall={async () => {
                 try {
+                  const durationSeconds = callStartTimeRef.current
+                    ? Math.max(0, Math.floor((Date.now() - callStartTimeRef.current) / 1000))
+                    : 0;
                   if (callSession) {
                     await cleanupAgoraCall(callSession);
                     setCallSession(null);
@@ -514,7 +574,12 @@ const ConversationPage = () => {
                   setIsCallConnected(false);
 
                   if (socket && socket.connected) {
-                    const body = JSON.stringify({ bookingId, userId: currentUserId });
+                    const body = JSON.stringify({
+                      bookingId,
+                      userId: currentUserId,
+                      callDurationSeconds: durationSeconds,
+                      callStatus: "ended",
+                    });
                     if (typeof socket.publish === "function") {
                       socket.publish({ destination: `/app/chat.call.end/${bookingId}`, body });
                     } else if (typeof socket.send === "function") {
@@ -557,6 +622,19 @@ const ConversationPage = () => {
               <div ref={messagesContainerRef} className="flex-1 overflow-y-auto pr-1">
                 <div className="space-y-6">
                   {messages.map((message) => {
+                    if (message.isCallLog) {
+                      return (
+                        <div key={message.id || message._id} className="flex justify-center">
+                          <div className="rounded-full bg-slate-100 px-4 py-2 text-center text-xs text-slate-600 shadow-sm">
+                            <div>{message.content}</div>
+                            <div className="mt-1 text-[10px] text-slate-500">
+                              {formatTimestamp(message.sentAt)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     const isMine = getSenderId(message) === currentUserId;
                     const senderName = message.senderName || (isMine ? "You" : "Unknown");
 

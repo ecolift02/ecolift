@@ -174,7 +174,7 @@ public class ChatController {
             activeCallRegistry.endCall(userId);
         }
 
-        Map<String, Object> ended = new HashMap<>();
+        Map<String, Object> ended = payload != null ? new HashMap<>(payload) : new HashMap<>();
         ended.put("bookingId", bookingId);
         ended.put("endedBy", userId != null ? userId : "unknown");
         messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/call-ended", ended);
