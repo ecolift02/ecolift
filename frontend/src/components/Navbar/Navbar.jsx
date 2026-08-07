@@ -8,8 +8,15 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout, currentMode, updateCurrentMode, user } =
     useAuth();
-  const { totalUnread } = useChat();
+  const {
+    totalUnread,
+    incomingCall,
+    clearIncomingCall,
+    acceptIncomingCall,
+    socket,
+  } = useChat();
   const location = useLocation();
+  const currentUserId = String(user?._id ?? user?.id ?? user?.userId ?? user?.user?._id ?? "");
 
   // States
   const [profile, setProfile] = useState(null);
@@ -79,7 +86,52 @@ const Navbar = () => {
     return name.charAt(0).toUpperCase();
   };
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
+    <>
+      {incomingCall && (
+        <div className="fixed top-24 right-4 z-50 w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div className="flex flex-col gap-3">
+            <div className="text-sm font-semibold text-slate-900">
+              Incoming call from {incomingCall.caller?.name || "Someone"}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  acceptIncomingCall(incomingCall.bookingId);
+                  navigate(`/inbox/${incomingCall.bookingId}`);
+                }}
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    if (socket && socket.connected) {
+                      const body = JSON.stringify({ bookingId: incomingCall.bookingId, userId: currentUserId });
+                      if (typeof socket.publish === "function") {
+                        socket.publish({ destination: `/app/chat.call.end/${incomingCall.bookingId}`, body });
+                      } else if (typeof socket.send === "function") {
+                        socket.send(`/app/chat.call.end/${incomingCall.bookingId}`, {}, body);
+                      } else {
+                        console.warn("socket not ready to send call end");
+                      }
+                    }
+                  } catch (err) {
+                    console.warn("failed sending call end on incoming decline", err);
+                  }
+                  clearIncomingCall();
+                }}
+                className="rounded-full bg-slate-600 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
         {/* Logo and Desktop Menu */}
         <div className="flex items-center gap-12">
@@ -357,6 +409,7 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
+    </>
   );
 };
 
