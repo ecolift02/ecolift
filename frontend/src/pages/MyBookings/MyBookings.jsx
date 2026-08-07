@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   CalendarClock,
   MapPin,
@@ -34,7 +34,8 @@ const STATUS_STYLES = {
 };
 
 // A passenger can only cancel a booking that hasn't already reached a final state.
-const isCancellable = (status) => status === "PENDING" || status === "CONFIRMED";
+const isCancellable = (status) =>
+  status === "PENDING" || status === "CONFIRMED";
 
 const MyBookings = () => {
   const navigate = useNavigate();
@@ -142,13 +143,22 @@ const MyBookings = () => {
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-emerald-600" />
                           <span className="font-semibold text-slate-800">
-                            {booking.departureLocationName} →{" "}
-                            {booking.arrivalLocationName}
+                            {booking.departureLocationName.substring(
+                              0,
+                              booking.departureLocationName.indexOf(","),
+                            )}{" "}
+                            →{" "}
+                            {booking.arrivalLocationName.substring(
+                              0,
+                              booking.arrivalLocationName.indexOf(","),
+                            )}
                           </span>
+                          <span className="text-slate-500"></span>
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
                           Driver: {booking.driverName} · Ref:{" "}
-                          {booking.bookingReference}
+                          {booking.bookingReference} . Ph.:{" "}
+                          <b>{booking.driverPhoneNumber || "NA"}</b>
                         </p>
                       </div>
 
@@ -178,8 +188,16 @@ const MyBookings = () => {
                       </span>
                     </div>
 
-                    {isCancellable(booking.status) && !isConfirmingCancel && (
-                      <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                      {booking.status === "CONFIRMED" && (
+                        <Link
+                          to={`/inbox/${booking.id}`}
+                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                          Message
+                        </Link>
+                      )}
+                      {isCancellable(booking.status) && !isConfirmingCancel && (
                         <button
                           onClick={() => {
                             setCancellingId(booking.id);
@@ -190,8 +208,9 @@ const MyBookings = () => {
                           <X className="h-4 w-4" />
                           Cancel Booking
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
 
                     {isConfirmingCancel && (
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 p-4">

@@ -1,24 +1,28 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; 
+import { useNavigate, Link, useLocation } from "react-router-dom";
 // 1. Import the useAuth hook from your context file (Adjust the path if needed)
-import { useAuth } from "../../../context/AuthContext"; 
+import { useAuth } from "../../../context/AuthContext";
+import { loginUser } from "../../../api/authApi";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Track field-specific and global errors
   const [errors, setErrors] = useState({
     email: "",
     password: "",
     global: "",
   });
-  
+
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  // Shown after a successful password reset (see ForgotPassword.jsx redirect).
+  const infoMessage = location.state?.infoMessage;
   const { login } = useAuth();
 
   // Regex Patterns
@@ -31,9 +35,17 @@ const LoginForm = () => {
     setEmail(val);
 
     if (val.trim() === "") {
-      setErrors((prev) => ({ ...prev, email: "Email is required", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        email: "Email is required",
+        global: "",
+      }));
     } else if (!EMAIL_REGEX.test(val)) {
-      setErrors((prev) => ({ ...prev, email: "Invalid email address format", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        email: "Invalid email address format",
+        global: "",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, email: "", global: "" }));
     }
@@ -45,12 +57,17 @@ const LoginForm = () => {
     setPassword(val);
 
     if (val === "") {
-      setErrors((prev) => ({ ...prev, password: "Password is required", global: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        password: "Password is required",
+        global: "",
+      }));
     } else if (!PASSWORD_REGEX.test(val)) {
-      setErrors((prev) => ({ 
-        ...prev, 
-        password: "Must be at least 8 characters, 1 uppercase, and include a symbol", 
-        global: "" 
+      setErrors((prev) => ({
+        ...prev,
+        password:
+          "Must be at least 8 characters, 1 uppercase, and include a symbol",
+        global: "",
       }));
     } else {
       setErrors((prev) => ({ ...prev, password: "", global: "" }));
@@ -58,8 +75,8 @@ const LoginForm = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); 
-    
+    e.preventDefault();
+
     // Final safety check before submitting
     let hasError = false;
     const newErrors = { email: "", password: "", global: "" };
@@ -76,7 +93,8 @@ const LoginForm = () => {
       newErrors.password = "Password is required";
       hasError = true;
     } else if (!PASSWORD_REGEX.test(password)) {
-      newErrors.password = "Must be at least 8 characters, 1 uppercase, and include a symbol";
+      newErrors.password =
+        "Must be at least 8 characters, 1 uppercase, and include a symbol";
       hasError = true;
     }
 
@@ -89,19 +107,7 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8083/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
-
-      const data = await response.json();
+      const { data } = await loginUser({ email, password });
 
       // Assuming 'data' contains the user info and 'data.token' is the JWT.
       login(data, data.token);
@@ -109,9 +115,14 @@ const LoginForm = () => {
       // Redirect to the home page (or dashboard)
       navigate("/");
     } catch (err) {
+      if (err.response?.status === 403) {
+        navigate("/verify-otp", { state: { email } });
+        return;
+      }
       setErrors((prev) => ({
         ...prev,
-        global: err.message || "Failed to login. Please try again.",
+        global:
+          err.response?.data?.message || "Failed to login. Please try again.",
       }));
     } finally {
       setLoading(false);
@@ -119,7 +130,11 @@ const LoginForm = () => {
   };
 
   // Helper to disable button if there are active errors or empty fields
-  const isFormInvalid = errors.email !== "" || errors.password !== "" || email === "" || password === "";
+  const isFormInvalid =
+    errors.email !== "" ||
+    errors.password !== "" ||
+    email === "" ||
+    password === "";
 
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
@@ -139,6 +154,12 @@ const LoginForm = () => {
           Enter your credentials to access your dashboard
         </p>
 
+        {infoMessage && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+            {infoMessage}
+          </div>
+        )}
+
         {/* Global Error Message Display */}
         {errors.global && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
@@ -157,8 +178,8 @@ const LoginForm = () => {
               onChange={handleEmailChange}
               placeholder="name@company.com"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none transition ${
-                errors.email 
-                  ? "border-red-500 focus:ring-red-500" 
+                errors.email
+                  ? "border-red-500 focus:ring-red-500"
                   : "border-gray-200 focus:ring-green-600"
               }`}
             />
@@ -169,7 +190,12 @@ const LoginForm = () => {
 
           {/* Password */}
           <div>
-            <label className="block mb-1 font-medium">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-medium">Password</label>
+              <Link to="/forgot-password" className="text-sm text-green-700 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -177,8 +203,8 @@ const LoginForm = () => {
                 onChange={handlePasswordChange}
                 placeholder="••••••••"
                 className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 outline-none transition ${
-                  errors.password 
-                    ? "border-red-500 focus:ring-red-500" 
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500"
                     : "border-gray-200 focus:ring-green-600"
                 }`}
               />
@@ -193,7 +219,9 @@ const LoginForm = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1 ml-1">{errors.password}</p>
+              <p className="text-red-500 text-xs mt-1 ml-1">
+                {errors.password}
+              </p>
             )}
           </div>
 
@@ -205,6 +233,15 @@ const LoginForm = () => {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+
+          <div className="text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-green-700 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </form>
 
         {/* Footer */}

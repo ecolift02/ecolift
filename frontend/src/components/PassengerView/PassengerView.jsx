@@ -12,9 +12,11 @@ const PassengerView = () => {
     date: "",
     passengers: "1",
   });
-  
+
   const [showMap, setShowMap] = useState(false);
-  
+
+  const [polyline, setPolyline] = useState(null); // State to hold the polyline data
+
   // Track field-level validation errors
   const [errors, setErrors] = useState({});
 
@@ -27,7 +29,7 @@ const PassengerView = () => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error for the field when the user starts typing/selecting
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -39,7 +41,7 @@ const PassengerView = () => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error for the location field when updated
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -74,11 +76,24 @@ const PassengerView = () => {
       newErrors.date = "Cannot select a past date";
     }
 
+    // Ensure route polyline exists for backend search
+    if (!polyline) {
+      newErrors.polyline = "Select a valid route on the map.";
+    }
+
     // If there are errors, set them and stop the search
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
+
+    const searchRequest = {
+      polyline,
+      departureTime: `${date}T00:00:00`,
+      seats: Number(passengers),
+    };
+
+    sessionStorage.setItem("rideSearchRequest", JSON.stringify(searchRequest));
 
     navigate(
       `/search?from=${encodeURIComponent(fromString)}&to=${encodeURIComponent(toString)}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(passengers)}`,
@@ -89,7 +104,6 @@ const PassengerView = () => {
     <div className="bg-white rounded-2xl shadow-2xl p-6">
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          
           {/* Origin */}
           <div className="flex flex-col">
             <SearchLocation
@@ -99,7 +113,9 @@ const PassengerView = () => {
               onBlur={() => setShowMap(true)}
             />
             {errors.from && (
-              <span className="text-red-500 text-xs mt-1 ml-1">{errors.from}</span>
+              <span className="text-red-500 text-xs mt-1 ml-1">
+                {errors.from}
+              </span>
             )}
           </div>
 
@@ -111,7 +127,9 @@ const PassengerView = () => {
               onChange={(value) => handleLocationChange("to", value)}
             />
             {errors.to && (
-              <span className="text-red-500 text-xs mt-1 ml-1">{errors.to}</span>
+              <span className="text-red-500 text-xs mt-1 ml-1">
+                {errors.to}
+              </span>
             )}
           </div>
 
@@ -136,14 +154,19 @@ const PassengerView = () => {
               />
             </div>
             {errors.date && (
-              <span className="text-red-500 text-xs mt-1 ml-1">{errors.date}</span>
+              <span className="text-red-500 text-xs mt-1 ml-1">
+                {errors.date}
+              </span>
             )}
           </div>
 
           {/* Passengers */}
           <div className="flex flex-col">
             <div className="relative">
-              <Users className="absolute left-3 top-3 text-gray-500" size={20} />
+              <Users
+                className="absolute left-3 top-3 text-gray-500"
+                size={20}
+              />
               <select
                 name="passengers"
                 value={searchData.passengers}
@@ -167,8 +190,12 @@ const PassengerView = () => {
               <Search size={20} />
               Search
             </button>
+            {errors.polyline && (
+              <span className="text-red-500 text-xs mt-2 ml-1">
+                {errors.polyline}
+              </span>
+            )}
           </div>
-          
         </div>
       </form>
 
@@ -178,7 +205,14 @@ const PassengerView = () => {
         }`}
       >
         <div className="h-96 w-full rounded-2xl overflow-hidden shadow-inner border border-slate-100">
-          {showMap && <ViewMap from={searchData.from} to={searchData.to} />}
+          {showMap && (
+            <ViewMap
+              from={searchData.from}
+              to={searchData.to}
+              setPolyline={setPolyline}
+              inPassengerView={true}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@ package com.ecolift.service;
 
 import com.ecolift.dto.request.RouteRequest;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.mapbox.geojson.Point;
+import com.mapbox.geojson.utils.PolylineUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -34,7 +36,7 @@ public class MapService {
         return response.getBody();
     }
 
-    public List<List<Double>> getRoute(RouteRequest request) {
+    public Map<String, Object> getRoute(RouteRequest request) {
         Double startLat = request.getStart().getLat();
         Double startLon = request.getStart().getLon();
         Double endLat = request.getEnd().getLat();
@@ -54,16 +56,17 @@ public class MapService {
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
                 ResponseEntity<JsonNode> response = restTemplate.exchange(orsUrl, HttpMethod.POST, entity, JsonNode.class);
 
-                JsonNode coordinatesNode = response.getBody()
-                        .path("features").get(0)
-                        .path("geometry").path("coordinates");
+                JsonNode featureNode = response.getBody().path("features").get(0);
+                JsonNode coordinatesNode = featureNode.path("geometry").path("coordinates");
+                JsonNode summaryNode = featureNode.path("properties").path("summary");
+                double distanceKm = summaryNode.path("distance").asDouble() / 1000.0;
 
-                return extractCoordinates(coordinatesNode);
+                return buildRouteResponse(extractCoordinates(coordinatesNode), distanceKm);
             } catch (Exception e) {
                 System.err.println("ORS failed, falling back to OSRM: " + e.getMessage());
             }
         }
-
+   
         try {
             String osrmUrl = String.format(
                     "https://router.project-osrm.org/route/v1/driving/%s,%s;%s,%s?overview=full&geometries=geojson",
@@ -71,11 +74,11 @@ public class MapService {
             );
 
             ResponseEntity<JsonNode> response = restTemplate.getForEntity(osrmUrl, JsonNode.class);
-            JsonNode coordinatesNode = response.getBody()
-                    .path("routes").get(0)
-                    .path("geometry").path("coordinates");
+            JsonNode routeNode = response.getBody().path("routes").get(0);
+            JsonNode coordinatesNode = routeNode.path("geometry").path("coordinates");
+            double distanceKm = routeNode.path("distance").asDouble() / 1000.0;
 
-            return extractCoordinates(coordinatesNode);
+            return buildRouteResponse(extractCoordinates(coordinatesNode), distanceKm);
         } catch (Exception e) {
             System.err.println("OSRM failed, falling back to straight line: " + e.getMessage());
         }
@@ -83,7 +86,29 @@ public class MapService {
         List<List<Double>> fallback = new ArrayList<>();
         fallback.add(List.of(startLat, startLon));
         fallback.add(List.of(endLat, endLon));
-        return fallback;
+        return buildRouteResponse(fallback, 0.0);
+    }
+
+    private Map<String, Object> buildRouteResponse(List<List<Double>> coordinates, double distanceKm) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("distanceKm", Math.round(distanceKm * 100.0) / 100.0);
+        response.put("polyline", encodePolyline(coordinates));
+        return response;
+    }
+
+    private String encodePolyline(List<List<Double>> coordinates) {
+        if (coordinates == null || coordinates.isEmpty()) {
+            return "";
+        }
+
+        List<Point> points = new ArrayList<>();
+        for (List<Double> point : coordinates) {
+            if (point.size() >= 2) {
+                points.add(Point.fromLngLat(point.get(1), point.get(0)));
+            }
+        }
+
+        return PolylineUtils.encode(points, 5);
     }
 
     private List<List<Double>> extractCoordinates(JsonNode coordinatesNode) {

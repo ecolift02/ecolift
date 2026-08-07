@@ -67,6 +67,11 @@ public class User {
     private LocalDateTime createdAt;
 
     private Boolean isDeleted = false;
+
+    // Added for Email OTP Verification (2FA on register). Defaults to false for
+    // every new signup; flipped to true once /api/auth/verify-otp succeeds.
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
     
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

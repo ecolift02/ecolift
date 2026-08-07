@@ -29,4 +29,6 @@ public class BookingResponse {
     private Booking.BookingStatus status;
     private String cancellationReason;
     private LocalDateTime cancellationTime;
+    private String driverPhoneNumber;
+    private String passengerPhoneNumber;
 }

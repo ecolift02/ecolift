@@ -27,9 +27,13 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Updated to use your custom source
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .formLogin(formLogin -> formLogin.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/rides/search").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/v1/vehicles/**").authenticated()
                 .anyRequest().authenticated()
             )

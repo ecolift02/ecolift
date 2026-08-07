@@ -3,6 +3,8 @@ package com.ecolift.dto.request;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -14,22 +16,43 @@ public class RidePublishRequest {
     @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 
-    // Either location IDs or city names can be provided. When IDs are not available,
-    // the controller will attempt to resolve locations by city name.
-    private Long departureLocationId;
+    // -----------------------------
+    // NEW ROUTE FIELDS
+    // -----------------------------
 
-    private Long arrivalLocationId;
+    @NotNull(message = "Start address is required")
+    private String startAddress;
 
-    // Optional city fallbacks when location IDs are not yet known on the client.
-    private String departureCity;
+    @NotNull(message = "Start latitude is required")
+    private BigDecimal startLatitude;
 
-    private String arrivalCity;
+    @NotNull(message = "Start longitude is required")
+    private BigDecimal startLongitude;
+
+    @NotNull(message = "Destination address is required")
+    private String endAddress;
+
+    @NotNull(message = "Destination latitude is required")
+    private BigDecimal endLatitude;
+
+    @NotNull(message = "Destination longitude is required")
+    private BigDecimal endLongitude;
+
+    @NotNull(message = "Route distance is required")
+    @DecimalMin(value = "0.1", message = "Distance must be greater than 0 km")
+    private Double distanceKm;
+
+    @NotBlank(message = "Route polyline is required")
+    private String polyline;
+
+    // -----------------------------
+    // EXISTING FIELDS
+    // -----------------------------
 
     @NotNull(message = "Departure time is required")
     @Future(message = "Departure time must be in the future")
     private LocalDateTime departureTime;
 
-    // Optional: Let the user provide an estimated arrival time if they want to
     @Future(message = "Estimated arrival time must be in the future")
     private LocalDateTime estimateArrivalTime;
 
@@ -38,6 +61,6 @@ public class RidePublishRequest {
     private Integer availableSeats;
 
     @NotNull(message = "Price per seat is required")
-    @Min(value = 0, message = "Price cannot be negative")
+    @DecimalMin(value = "0.0", inclusive = true, message = "Price per seat cannot be negative")
     private BigDecimal pricePerSeat;
 }

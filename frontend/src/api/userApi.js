@@ -17,3 +17,14 @@ export const changePassword = async (currentPassword, newPassword) => {
   });
   return res.data;
 };
+
+// Uploads a new profile picture (multipart/form-data) and returns the
+// updated profile (with the new profilePictureUrl already set).
+export const uploadProfilePicture = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await api.post("/users/profile/picture", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};

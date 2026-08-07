@@ -1,13 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { getProfile } from "../../api/userApi";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, currentMode, updateCurrentMode, user } = useAuth();
+  const { isAuthenticated, logout, currentMode, updateCurrentMode, user } =
+    useAuth();
+  const {
+    totalUnread,
+    incomingCall,
+    clearIncomingCall,
+    acceptIncomingCall,
+    socket,
+  } = useChat();
   const location = useLocation();
+  const currentUserId = String(user?._id ?? user?.id ?? user?.userId ?? user?.user?._id ?? "");
 
   // States
+  const [profile, setProfile] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false); // Controls the sub-dropdown
   const [userMode, setUserMode] = useState(
@@ -54,8 +66,72 @@ const Navbar = () => {
     setUserMode((currentMode || "PASSENGER").toLowerCase());
   }, [currentMode]);
 
+  //Profile
+  const profileFetch = async () => {
+    try {
+      const data = await getProfile();
+      setProfile(data);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      profileFetch();
+    }
+  }, [isAuthenticated]);
+  
+  const getInitial = () => {
+    const name = profile?.name || user?.name || "U";
+    return name.charAt(0).toUpperCase();
+  };
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
+    <>
+      {incomingCall && (
+        <div className="fixed top-24 right-4 z-50 w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div className="flex flex-col gap-3">
+            <div className="text-sm font-semibold text-slate-900">
+              Incoming call from {incomingCall.caller?.name || "Someone"}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  acceptIncomingCall(incomingCall.bookingId);
+                  navigate(`/inbox/${incomingCall.bookingId}`);
+                }}
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    if (socket && socket.connected) {
+                      const body = JSON.stringify({ bookingId: incomingCall.bookingId, userId: currentUserId });
+                      if (typeof socket.publish === "function") {
+                        socket.publish({ destination: `/app/chat.call.end/${incomingCall.bookingId}`, body });
+                      } else if (typeof socket.send === "function") {
+                        socket.send(`/app/chat.call.end/${incomingCall.bookingId}`, {}, body);
+                      } else {
+                        console.warn("socket not ready to send call end");
+                      }
+                    }
+                  } catch (err) {
+                    console.warn("failed sending call end on incoming decline", err);
+                  }
+                  clearIncomingCall();
+                }}
+                className="rounded-full bg-slate-600 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm h-20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-8 h-full flex justify-between items-center">
         {/* Logo and Desktop Menu */}
         <div className="flex items-center gap-12">
@@ -72,18 +148,6 @@ const Navbar = () => {
               className="text-green-700 font-semibold border-b-2 border-green-700 pb-1"
             >
               How it Works
-            </a>
-            <a
-              href="#support"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
-              Support
-            </a>
-            <a
-              href="#blog"
-              className="text-gray-600 hover:text-green-700 transition"
-            >
-              Blog
             </a>
           </div>
         </div>
@@ -109,7 +173,15 @@ const Navbar = () => {
           ) : (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               {/* Eco Stats Pill */}
-              
+
+              <Link to="/inbox" className="relative rounded-full border border-green-200 p-2 text-green-700 hover:bg-green-50">
+                <span className="material-symbols-outlined">mail</span>
+                {totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold text-white">
+                    {totalUnread}
+                  </span>
+                )}
+              </Link>
 
               <div className="hidden md:flex items-center gap-2">
                 {user?.roles?.includes("ADMIN") && (
@@ -166,11 +238,15 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full border-2 border-green-700 overflow-hidden focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition"
               >
-                <img
-                  className="w-full h-full object-cover"
-                  alt="User Profile Avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTXEqeXb5oMyQbf1hR_m59FLXF81K1UzNc300uKHMGjM_4kHPRyedHC2m4sirqtGwkISVtDsxdYa6FnhQJ_3RY5OskpVuPlEKu6NRYsEGQjQUCILUNSbCIpi8XbIW2PqJ-_yc6nwknNGb0bDskAn4_z6sCdeCsOaRjL0zYCKJ-lgjobRKMy7Rx_xVuOq60y31HjSDwRGQR9YgsJamE6F31g2kO8CY1Zidr6cdK7inh_bkIDXD8W78fcW2GT2edMpT6Q4yGHfD4ubw"
-                />
+                {profile?.profilePictureUrl || user?.profilePictureUrl ? (
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="User Profile Avatar"
+                    src={profile?.profilePictureUrl || user?.profilePictureUrl}
+                  />
+                ) : (
+                  <span>{getInitial()}</span>
+                )}
               </button>
 
               {/* Dropdown Menu */}
@@ -190,7 +266,7 @@ const Navbar = () => {
                     <span className="material-symbols-outlined text-[18px]">
                       person
                     </span>
-                    Profile
+                    Profile : <b>{profile?.name || user?.name || "User"}</b>
                   </Link>
 
                   {user?.roles?.includes("ADMIN") && (
@@ -333,6 +409,7 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
+    </>
   );
 };
 
