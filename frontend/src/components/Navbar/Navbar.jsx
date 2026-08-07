@@ -73,6 +73,7 @@ const Navbar = () => {
       profileFetch();
     }
   }, [isAuthenticated]);
+  
   const getInitial = () => {
     const name = profile?.name || user?.name || "U";
     return name.charAt(0).toUpperCase();

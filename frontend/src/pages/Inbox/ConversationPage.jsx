@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axiosConfig";
@@ -9,6 +9,7 @@ import Footer from "../../components/Footer/Footer";
 import CallButton from "../../components/Call/CallButton";
 import CallScreen from "../../components/Call/CallScreen";
 import { cleanupAgoraCall, initializeAgoraCall } from "../../services/agoraCall";
+import { startRingtone, stopRingtone } from "../../services/ringtone";
 
 const formatTimestamp = (value) => {
   if (!value) return "";
@@ -40,6 +41,7 @@ const ConversationPage = () => {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [seenRequestSent, setSeenRequestSent] = useState(false);
+  const messagesContainerRef = useRef(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
@@ -76,6 +78,25 @@ const ConversationPage = () => {
     console.log("Computed currentUserId:", id); // TEMP DEBUG
     return id;
   }, [user]);
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (callInvite) {
+      startRingtone();
+    } else {
+      stopRingtone();
+    }
+
+    return () => {
+      stopRingtone();
+    };
+  }, [callInvite]);
+
   useEffect(() => {
     if (!socket || !bookingId) return;
 
@@ -84,6 +105,7 @@ const ConversationPage = () => {
     let editedSub = null;
     let deletedSub = null;
     let callSub = null;
+    let callEndedSub = null;
     let prevOnConnect = null;
     let wrappedOnConnect = false;
 
@@ -161,9 +183,27 @@ const ConversationPage = () => {
         const payload = JSON.parse(message.body);
         if (!payload?.bookingId || !payload?.caller) return;
         if (String(payload.bookingId) !== String(bookingId)) return;
+        const callerId = normalizeId(payload.caller?.userId);
+        if (callerId === currentUserId) return;
         setCallInvite(payload);
       } catch (e) {
         console.warn("Failed to parse call invite", e);
+      }
+    };
+
+    const handleCallEnded = async (message) => {
+      try {
+        const payload = JSON.parse(message.body);
+        if (!payload?.bookingId) return;
+        if (String(payload.bookingId) !== String(bookingId)) return;
+        if (callSession) {
+          await cleanupAgoraCall(callSession);
+          setCallSession(null);
+        }
+        setIsCallConnected(false);
+        setCallInvite(null);
+      } catch (e) {
+        console.warn("Failed to parse call ended message", e);
       }
     };
 
@@ -174,6 +214,7 @@ const ConversationPage = () => {
         if (!editedSub) editedSub = socket.subscribe(`/topic/chat/${bookingId}/edited`, handleEditedUpdate);
         if (!deletedSub) deletedSub = socket.subscribe(`/topic/chat/${bookingId}/deleted`, handleDeletedUpdate);
         if (!callSub) callSub = socket.subscribe(`/topic/chat/${bookingId}/call`, handleCallInvite);
+        if (!callEndedSub) callEndedSub = socket.subscribe(`/topic/chat/${bookingId}/call-ended`, handleCallEnded);
       } catch (e) {
         console.warn("Failed to subscribe to chat topics", e);
       }
@@ -221,6 +262,11 @@ const ConversationPage = () => {
       } catch (e) {
         /* ignore */
       }
+      try {
+        callEndedSub?.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
 
       // restore previous onConnect if we wrapped it
       if (wrappedOnConnect && prevOnConnect !== null) {
@@ -230,7 +276,7 @@ const ConversationPage = () => {
       // Note: do NOT deactivate the shared socket from here. If this component
       // creates its own client instance, call client.deactivate() instead.
     };
-  }, [socket, bookingId]);
+  }, [socket, bookingId, currentUserId]);
 
   const canEditMessage = (message) => {
     const isMine = getSenderId(message) === currentUserId;
@@ -373,7 +419,11 @@ const ConversationPage = () => {
         senderId: saved.senderId ?? user?._id ?? user?.id,
         senderName: saved.senderName ?? user?.name ?? "You",
       };
-      setMessages((prev) => [...prev, savedWithSender]);
+      setMessages((prev) => {
+        const alreadyExists = prev.some((item) => String(item.id ?? item._id) === String(savedWithSender.id));
+        if (alreadyExists) return prev;
+        return [...prev, savedWithSender];
+      });
       setDraft("");
     }
   };
@@ -434,6 +484,21 @@ const ConversationPage = () => {
                     disabled={isConnectingCall || isCallConnected}
                   />
                 </div>
+                 {isCallConnected && (
+            <CallScreen
+              isConnected={isCallConnected}
+              onConnect={() => setIsCallConnected(true)}
+              onMuteToggle={() => setIsMuted((prev) => !prev)}
+              muted={isMuted}
+              onEndCall={async () => {
+                if (callSession) {
+                  await cleanupAgoraCall(callSession);
+                  setCallSession(null);
+                }
+                setIsCallConnected(false);
+              }}
+            />
+          )}
               </div>
             </div>
           </div>
@@ -459,7 +524,7 @@ const ConversationPage = () => {
                 </p>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto pr-1">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto pr-1">
                 <div className="space-y-6">
                   {messages.map((message) => {
                     const isMine = getSenderId(message) === currentUserId;
@@ -580,21 +645,7 @@ const ConversationPage = () => {
             )}
           </div>
 
-          {isCallConnected && (
-            <CallScreen
-              isConnected={isCallConnected}
-              onConnect={() => setIsCallConnected(true)}
-              onMuteToggle={() => setIsMuted((prev) => !prev)}
-              muted={isMuted}
-              onEndCall={async () => {
-                if (callSession) {
-                  await cleanupAgoraCall(callSession);
-                  setCallSession(null);
-                }
-                setIsCallConnected(false);
-              }}
-            />
-          )}
+         
 
           <form onSubmit={handleSend} className="border-t border-slate-200 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

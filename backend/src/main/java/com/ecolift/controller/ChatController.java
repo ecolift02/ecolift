@@ -7,7 +7,10 @@ import com.ecolift.entity.User;
 import com.ecolift.exception.ResourceNotFoundException;
 import com.ecolift.repository.BookingRepository;
 import com.ecolift.repository.UserRepository;
+import com.ecolift.service.ActiveCallRegistry;
 import com.ecolift.service.ChatService;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,6 +30,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final ActiveCallRegistry activeCallRegistry;
 
     @MessageMapping("/chat.send/{bookingId}")
     public void send(@DestinationVariable Long bookingId,
@@ -50,6 +54,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat.message-delivered/{bookingId}")
+    @Transactional
     public void messageDelivered(@DestinationVariable Long bookingId,
                                  Principal principal,
                                  @Payload Long messageId) {
@@ -72,6 +77,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat.mark-as-seen/{bookingId}")
+    @Transactional
     public void markAsSeen(@DestinationVariable Long bookingId,
                            Principal principal) {
         List<Long> seenIds = chatService.markAsSeen(bookingId, principal.getName());
@@ -102,6 +108,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat.call/{bookingId}")
+    @Transactional
     public void handleCallInvite(@DestinationVariable Long bookingId,
                                  @Payload Map<String, Object> payload,
                                  Principal principal) {
@@ -113,6 +120,13 @@ public class ChatController {
                 ? booking.getRide().getDriver()
                 : booking.getPassenger();
 
+        String callerId = principal != null ? principal.getName() : extractCallerId(payload, principal);
+        if (callerId != null && activeCallRegistry.isUserInCall(callerId)) {
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/call-error",
+                    Map.of("bookingId", bookingId, "message", "You are already in an active call."));
+            return;
+        }
+
         if (otherParticipant != null) {
             Map<String, Object> invite = new HashMap<>();
             invite.put("bookingId", bookingId);
@@ -121,5 +135,65 @@ public class ChatController {
             messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/call", invite);
             messagingTemplate.convertAndSendToUser(otherParticipant.getEmail(), "/queue/call-invite", invite);
         }
+    }
+
+    @MessageMapping("/chat.call.accept/{bookingId}")
+    public void handleCallAccept(@DestinationVariable Long bookingId,
+                                 @Payload Map<String, Object> payload,
+                                 Principal principal) {
+        String userId = principal != null ? principal.getName() : extractCallerId(payload, principal);
+        if (userId == null) {
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/call-error",
+                    Map.of("bookingId", bookingId, "message", "Unable to accept call: missing caller identifier."));
+            return;
+        }
+
+        if (!activeCallRegistry.tryStartCall(userId, bookingId)) {
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/call-error",
+                    Map.of("bookingId", bookingId, "message", "Unable to accept call: you are already in another active call."));
+            return;
+        }
+
+        Map<String, Object> started = new HashMap<>();
+        started.put("bookingId", bookingId);
+        started.put("userId", userId);
+        started.put("status", "started");
+        messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/call-started", started);
+    }
+
+    @MessageMapping("/chat.call.end/{bookingId}")
+    public void handleCallEnd(@DestinationVariable Long bookingId,
+                              @Payload Map<String, Object> payload,
+                              Principal principal) {
+        String userId = extractCallerId(payload, principal);
+        if (userId == null && principal != null) {
+            userId = principal.getName();
+        }
+
+        if (userId != null) {
+            activeCallRegistry.endCall(userId);
+        }
+
+        Map<String, Object> ended = new HashMap<>();
+        ended.put("bookingId", bookingId);
+        ended.put("endedBy", userId != null ? userId : "unknown");
+        messagingTemplate.convertAndSend("/topic/chat/" + bookingId + "/call-ended", ended);
+    }
+
+    private String extractCallerId(Map<String, Object> payload, Principal principal) {
+        if (payload != null) {
+            Object caller = payload.get("caller");
+            if (caller instanceof Map<?, ?> callerMap) {
+                Object userId = callerMap.get("userId");
+                if (userId != null) {
+                    return String.valueOf(userId);
+                }
+            }
+            Object userId = payload.get("userId");
+            if (userId != null) {
+                return String.valueOf(userId);
+            }
+        }
+        return principal == null ? null : principal.getName();
     }
 }

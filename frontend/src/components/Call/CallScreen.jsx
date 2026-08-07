@@ -10,21 +10,21 @@ const CallScreen = ({ isConnected, onConnect, onMuteToggle, muted, onEndCall }) 
         <button
           type="button"
           onClick={onConnect}
-          className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+          className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
         >
           Connect
         </button>
         <button
           type="button"
           onClick={onMuteToggle}
-          className="rounded-full bg-slate-700 px-3 py-2 text-sm font-semibold text-white"
+          className="rounded-full bg-slate-700 px-3 py-2 text-xs font-semibold text-white"
         >
           {muted ? "Unmute" : "Mute"}
         </button>
         <button
           type="button"
           onClick={onEndCall}
-          className="rounded-full bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+          className="rounded-full bg-rose-600 px-3 py-2 text-xs font-semibold text-white"
         >
           End Call
         </button>
