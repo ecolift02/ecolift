@@ -276,7 +276,7 @@ const ConversationPage = () => {
       // Note: do NOT deactivate the shared socket from here. If this component
       // creates its own client instance, call client.deactivate() instead.
     };
-  }, [socket, bookingId, currentUserId]);
+  }, [socket, bookingId, currentUserId, callSession]);
 
   const canEditMessage = (message) => {
     const isMine = getSenderId(message) === currentUserId;
@@ -387,6 +387,21 @@ const ConversationPage = () => {
   };
 
   const handleDeclineCall = () => {
+    try {
+      if (socket && socket.connected && callInvite) {
+        const body = JSON.stringify({ bookingId, userId: currentUserId });
+        if (typeof socket.publish === "function") {
+          socket.publish({ destination: `/app/chat.call.end/${bookingId}`, body });
+        } else if (typeof socket.send === "function") {
+          socket.send(`/app/chat.call.end/${bookingId}`, {}, body);
+        } else {
+          console.warn("socket not ready to send call end");
+        }
+      }
+    } catch (e) {
+      console.warn("failed sending call end on decline", e);
+    }
+
     setCallInvite(null);
   };
 
@@ -491,11 +506,26 @@ const ConversationPage = () => {
               onMuteToggle={() => setIsMuted((prev) => !prev)}
               muted={isMuted}
               onEndCall={async () => {
-                if (callSession) {
-                  await cleanupAgoraCall(callSession);
-                  setCallSession(null);
+                try {
+                  if (callSession) {
+                    await cleanupAgoraCall(callSession);
+                    setCallSession(null);
+                  }
+                  setIsCallConnected(false);
+
+                  if (socket && socket.connected) {
+                    const body = JSON.stringify({ bookingId, userId: currentUserId });
+                    if (typeof socket.publish === "function") {
+                      socket.publish({ destination: `/app/chat.call.end/${bookingId}`, body });
+                    } else if (typeof socket.send === "function") {
+                      socket.send(`/app/chat.call.end/${bookingId}`, {}, body);
+                    } else {
+                      console.warn("socket not ready to send call end");
+                    }
+                  }
+                } catch (e) {
+                  console.warn("failed sending call end on end-call", e);
                 }
-                setIsCallConnected(false);
               }}
             />
           )}
