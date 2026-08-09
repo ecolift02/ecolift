@@ -160,14 +160,20 @@ const Register = () => {
     EMAIL_REGEX.test(formData.email) &&
     PHONE_REGEX.test(formData.phone) &&
     PASSWORD_REGEX.test(formData.password);
+
   return (
     <main className="flex min-h-screen w-full relative">
-      <div className="absolute top-6 right-6 z-50">
+      {/* UPDATED: Responsive Go to Home Button */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
         <Link
           to="/"
-          className="px-4 py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center gap-2"
+          title="Go to Home"
+          className="p-2.5 md:px-5 md:py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center justify-center gap-2 active:scale-95"
         >
-          ← Go to Home
+          <span className="material-symbols-outlined text-[22px] md:text-[18px]">
+            home
+          </span>
+          <span className="hidden md:block">Go to Home</span>
         </Link>
       </div>
 
@@ -231,8 +237,12 @@ const Register = () => {
           </div>
 
           <div>
-            <h2 className="text-4xl font-bold mb-2">Create your account</h2>
-            <p className="text-gray-600">
+            {/* Reduced to text-3xl on mobile, jumps back to text-4xl on md screens and up */}
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-slate-900">
+              Create your account
+            </h2>
+            {/* Reduced to text-sm on mobile, jumps back to standard text-base on md screens */}
+            <p className="text-sm md:text-base text-gray-600">
               Start your journey toward zero-emission commuting today.
             </p>
           </div>
@@ -284,7 +294,7 @@ const Register = () => {
                   />
                 </label>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mt-2">
                 Image Size should be less than 2MB
               </p>
             </div>
@@ -448,7 +458,11 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading || !isFormValid}
-              className="w-full h-12 rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition disabled:opacity-50"
+              className={`w-full h-12 rounded-xl text-white font-semibold transition disabled:opacity-50 ${
+                loading || !isFormValid
+                  ? " bg-green-700 cursor-not-allowed"
+                  : "bg-green-700 hover:bg-green-800"
+              }`}
             >
               {loading ? "Creating Account..." : "Create Account"}
             </button>

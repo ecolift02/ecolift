@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-// 1. Import the useAuth hook from your context file (Adjust the path if needed)
 import { useAuth } from "../../../context/AuthContext";
 import { loginUser } from "../../../api/authApi";
 
@@ -10,7 +9,6 @@ const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Track field-specific and global errors
   const [errors, setErrors] = useState({
     email: "",
     password: "",
@@ -21,15 +19,12 @@ const LoginForm = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  // Shown after a successful password reset (see ForgotPassword.jsx redirect).
   const infoMessage = location.state?.infoMessage;
   const { login } = useAuth();
 
-  // Regex Patterns
   const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/; // 8+ chars, 1 uppercase, 1 symbol
+  const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
-  // Real-time "then and there" validation for Email
   const handleEmailChange = (e) => {
     const val = e.target.value;
     setEmail(val);
@@ -51,7 +46,6 @@ const LoginForm = () => {
     }
   };
 
-  // Real-time "then and there" validation for Password
   const handlePasswordChange = (e) => {
     const val = e.target.value;
     setPassword(val);
@@ -77,7 +71,6 @@ const LoginForm = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Final safety check before submitting
     let hasError = false;
     const newErrors = { email: "", password: "", global: "" };
 
@@ -108,11 +101,7 @@ const LoginForm = () => {
 
     try {
       const { data } = await loginUser({ email, password });
-
-      // Assuming 'data' contains the user info and 'data.token' is the JWT.
       login(data, data.token);
-
-      // Redirect to the home page (or dashboard)
       navigate("/");
     } catch (err) {
       if (err.response?.status === 403) {
@@ -129,7 +118,6 @@ const LoginForm = () => {
     }
   };
 
-  // Helper to disable button if there are active errors or empty fields
   const isFormInvalid =
     errors.email !== "" ||
     errors.password !== "" ||
@@ -137,17 +125,24 @@ const LoginForm = () => {
     password === "";
 
   return (
-    <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+    <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative min-h-screen lg:min-h-0">
       {/* Go to Home Button */}
-      <div className="fixed top-6 right-6 z-50">
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
         <Link
           to="/"
-          className="px-5 py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center gap-2"
+          title="Go to Home"
+          className="p-2.5 md:px-5 md:py-2.5 bg-white border border-green-700 text-green-700 rounded-full hover:bg-green-50 transition font-medium text-sm shadow-md flex items-center justify-center gap-2 active:scale-95"
         >
-          ← Go to Home
+          {/* Icon always shows, sizes adjust slightly for mobile vs desktop */}
+          <span className="material-symbols-outlined text-[22px] md:text-[18px]">
+            home
+          </span>
+          {/* Text is hidden on small screens, block on medium (md) and up */}
+          <span className="hidden md:block">Go to Home</span>
         </Link>
       </div>
-      <div className="w-full max-w-md">
+
+      <div className="w-full max-w-md mt-12 md:mt-0">
         <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
 
         <p className="text-gray-500 mb-8">
@@ -160,16 +155,13 @@ const LoginForm = () => {
           </div>
         )}
 
-        {/* Global Error Message Display */}
         {errors.global && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
             {errors.global}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4" noValidate>
-          {/* Email */}
           <div>
             <label className="block mb-1 font-medium">Email</label>
             <input
@@ -188,11 +180,13 @@ const LoginForm = () => {
             )}
           </div>
 
-          {/* Password */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="font-medium">Password</label>
-              <Link to="/forgot-password" className="text-sm text-green-700 hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-green-700 hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -225,7 +219,6 @@ const LoginForm = () => {
             )}
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
             disabled={loading || isFormInvalid}
@@ -233,18 +226,8 @@ const LoginForm = () => {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-
-          <div className="text-center">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-green-700 hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
         </form>
 
-        {/* Footer */}
         <div className="pt-6 text-center">
           <p className="text-gray-600">
             Don't have an account?{" "}

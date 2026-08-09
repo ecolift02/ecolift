@@ -157,11 +157,19 @@ const RideDetails = () => {
                   <br /> {ride.arrivalLocationName}
                 </p>
               </div>
-              <div className="rounded-2xl bg-emerald-50 p-4">
-                <p className="text-sm text-gray-500">Available Seats</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {availableSeatsLabel}
-                </p>
+              <div className="grid gap-4">
+                <div className="rounded-2xl bg-emerald-50 p-4">
+                  <p className="text-sm text-gray-500">Available Seats</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {availableSeatsLabel}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-emerald-50 p-4">
+                  <p className="text-sm text-gray-500">Distance</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {ride.distanceKm} km
+                  </p>
+                </div>
               </div>
             </div>
 

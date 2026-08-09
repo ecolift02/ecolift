@@ -29,54 +29,47 @@ function App() {
   return (
     <AuthProvider>
       <ChatProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/ride-details" element={<RideDetails />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          {/* New Vehicle Registration Route */}
-          <Route path="/register-vehicle" element={<RegisterVehicle />} />
+        <BrowserRouter>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOtp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/search" element={<SearchResults />} />
+            <Route path="/ride-details" element={<RideDetails />} />
+            <Route path="/booking" element={<Booking />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            {/* New Vehicle Registration Route */}
+            <Route path="/register-vehicle" element={<RegisterVehicle />} />
 
-          {/* Protected Routes: Any authenticated user */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/bookings/my" element={<MyBookings />} />
-            <Route path="/inbox" element={<Inbox />} />
-            <Route path="/inbox/:bookingId" element={<ConversationPage />} />
-          </Route>
+            {/* Protected Routes: Any authenticated user */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/bookings/my" element={<MyBookings />} />
+              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/inbox/:bookingId" element={<ConversationPage />} />
+            </Route>
 
-          {/* Protected Routes: DRIVERS only */}
-          <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
-            <Route path="/driver/rides" element={<DriverRides />} />
-            <Route path="/driver/vehicles" element={<MyVehicles />} />
-            <Route path="/driver/bookings" element={<DriverBookings />} />
-          </Route>
-          {/* <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
-            <Route path="/driver-dashboard" element={<DriverDashboard />} />
-            <Route
-              path="/publish-ride"
-              element={<div>Publish Ride Page</div>}
-            />
-          </Route> */}
+            {/* Protected Routes: DRIVERS only */}
+            <Route element={<ProtectedRoute allowedRoles={["DRIVER"]} />}>
+              <Route path="/driver/rides" element={<DriverRides />} />
+              <Route path="/driver/vehicles" element={<MyVehicles />} />
+              <Route path="/driver/bookings" element={<DriverBookings />} />
+            </Route>
 
-          {/* Protected Routes: ADMIN only */}
-          <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/vehicles" element={<AdminVehicles />} />
-            <Route path="/admin/rides" element={<AdminRides />} />
-            <Route path="/admin/bookings" element={<AdminBookings />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+            {/* Protected Routes: ADMIN only */}
+            <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/vehicles" element={<AdminVehicles />} />
+              <Route path="/admin/rides" element={<AdminRides />} />
+              <Route path="/admin/bookings" element={<AdminBookings />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
       </ChatProvider>
     </AuthProvider>
   );

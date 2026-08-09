@@ -153,10 +153,16 @@ const Booking = () => {
                   {ride.arrivalLocationName}
                 </p>
               </div>
-              <div className="rounded-2xl bg-emerald-50 p-4 md:col-span-2">
+              <div className="rounded-2xl bg-emerald-50 p-4 ">
                 <p className="text-sm text-gray-500">Departure</p>
                 <p className="text-lg font-semibold text-gray-900">
                   {new Date(ride.departureTime).toLocaleString()}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-4 ">
+                <p className="text-sm text-gray-500">Distance</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {ride.distanceKm} km
                 </p>
               </div>
             </div>

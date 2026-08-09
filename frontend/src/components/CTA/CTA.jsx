@@ -23,13 +23,18 @@ const CTA = () => {
 
         {/* Buttons */}
         <div className="flex flex-col md:flex-row gap-4 justify-center">
-          <button className="bg-white text-green-700 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition flex items-center justify-center gap-2">
+          <button
+            onClick={() => (window.location.href = "/register")}
+            className="bg-white text-green-700 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition flex items-center justify-center gap-2"
+          >
             Get Started Free
             <ArrowRight size={18} />
-            
           </button>
 
-          <button className="bg-green-800 border border-green-300 px-8 py-4 rounded-full font-semibold hover:bg-green-900 transition">
+          <button
+            onClick={() => (window.location.href = "/driver/rides")}
+            className="bg-green-800 border border-green-300 px-8 py-4 rounded-full font-semibold hover:bg-green-900 transition"
+          >
             List a Ride
           </button>
         </div>

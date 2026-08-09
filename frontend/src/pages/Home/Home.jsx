@@ -17,7 +17,6 @@ const Home = () => {
         <Hero />
         <HowItWorks />
         <Stats />
-        <FeaturedRides />
         <CTA />
       </main>
       <Footer />
