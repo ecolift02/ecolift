@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home/Home";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
+import VerifyOtp from "./pages/VerifyOtp/VerifyOtp";
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/Routes/ProtectedRoute";
 import RegisterVehicle from "./pages/Register/RegisterVehicle";
@@ -19,15 +22,22 @@ import AdminUsers from "./pages/Admin/AdminUsers";
 import AdminVehicles from "./pages/Admin/AdminVehicles";
 import AdminRides from "./pages/Admin/AdminRides";
 import AdminBookings from "./pages/Admin/AdminBookings";
+import Inbox from "./pages/Inbox/Inbox";
+import ConversationPage from "./pages/Inbox/ConversationPage";
+import { ChatProvider } from "./context/ChatContext";
 function App() {
   return (
     <AuthProvider>
+      <ChatProvider>
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/ride-details" element={<RideDetails />} />
           <Route path="/booking" element={<Booking />} />
@@ -39,6 +49,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/bookings/my" element={<MyBookings />} />
+            <Route path="/inbox" element={<Inbox />} />
+            <Route path="/inbox/:bookingId" element={<ConversationPage />} />
           </Route>
 
           {/* Protected Routes: DRIVERS only */}
@@ -65,6 +77,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ChatProvider>
     </AuthProvider>
   );
 }

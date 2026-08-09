@@ -15,8 +15,10 @@
     "@mapbox/polyline": "^1.2.1",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
+    "@stomp/stompjs": "^7.3.0",
     "@supabase/supabase-js": "^2.111.0",
     "@tailwindcss/vite": "^4.3.1",
+    "agora-rtc-sdk-ng": "^4.24.7",
     "axios": "^1.18.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.21.0",
@@ -24,6 +26,7 @@
     "react-dom": "^19.2.7",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.1",
+    "sockjs-client": "^1.6.1",
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {

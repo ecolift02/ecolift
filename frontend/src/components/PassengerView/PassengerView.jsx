@@ -81,7 +81,7 @@ const PassengerView = () => {
 
     // Ensure route polyline exists for backend search
     if (!polyline) {
-      newErrors.polyline = "Route polyline is required";
+      newErrors.polyline = "Select a valid route on the map.";
     }
 
     // If there are errors, set them and stop the search
