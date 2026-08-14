@@ -15,5 +15,5 @@ WORKDIR /app
 # change "*.jar" below to your exact jar name (e.g., "ecolift-0.0.1-SNAPSHOT.jar") to avoid errors.
 COPY --from=build /app/target/*.jar app.jar
 # Render uses the PORT environment variable
-EXPOSE 8080
+EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "app.jar"]
