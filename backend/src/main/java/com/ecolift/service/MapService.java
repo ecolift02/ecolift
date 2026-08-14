@@ -1,5 +1,6 @@
 package com.ecolift.service;
-
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import com.ecolift.dto.request.RouteRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mapbox.geojson.Point;
