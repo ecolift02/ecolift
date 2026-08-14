@@ -4,6 +4,8 @@ import { Search, MapPin, CalendarDays, Users } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import PassengerView from "../PassengerView/PassengerView";
 import DriverView from "../DriverView/DriverView";
+import heroGif from "../../assets/vid.gif";
+
 
 const Hero = () => {
   const { currentMode, isAuthenticated } = useAuth();
@@ -11,7 +13,7 @@ const Hero = () => {
     <section
       className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
       style={{
-        backgroundImage: "url(./src/assets/vid.gif)",
+        backgroundImage: `url(${heroGif})`,
       }}
     >
       <div className="absolute inset-0 bg-black/50"></div>
