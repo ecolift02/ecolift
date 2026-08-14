@@ -1,5 +1,5 @@
-import LoginHero from "./components/LoginHero";
-import LoginForm from "./components/LoginForm";
+import LoginHero from "./Components/LoginHero";
+import LoginForm from "./Components/LoginForm";
 
 const Login = () => {
   return (
