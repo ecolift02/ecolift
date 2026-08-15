@@ -59,13 +59,13 @@ const SearchResults = () => {
           seats: sessionRequest.seats || Number(seats),
         };
 
-        const response = await fetch("http://localhost:8083/api/rides/search", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/rides/search`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(body),
+});
 
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`);
