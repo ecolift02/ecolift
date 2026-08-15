@@ -1,33 +1,42 @@
 package com.ecolift.service.impl;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import com.ecolift.exception.EmailSendException;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
-
-import com.ecolift.exception.EmailSendingFailedException;
 import com.ecolift.service.EmailService;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${spring.mail.username}")
+    @Value("${application.resend.api-key}")
+    private String resendApiKey;
+
+    @Value("${application.resend.from-address}")
     private String fromAddress;
 
     @Value("${application.security.otp.expiration-minutes:10}")
     private int otpExpirationMinutes;
+
+    private static final String RESEND_API_URL = "https://api.resend.com/emails";
 
     @Override
     public void sendRegistrationOtp(String toEmail, String name, String otp) {
@@ -48,29 +57,31 @@ public class EmailServiceImpl implements EmailService {
 
     private void send(String toEmail, String subject, String htmlBody) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
-        } catch (MessagingException ex) {
-            // Log the FULL underlying cause server-side (e.g. "535 Authentication
-            // failed" from Gmail) so it's actually debuggable from the console,
-            // while the client only ever sees the safe message below.
-            log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(resendApiKey);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("from", fromAddress);
+            payload.put("to", List.of(toEmail));
+            payload.put("subject", subject);
+            payload.put("html", htmlBody);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(RESEND_API_URL, entity, String.class);
+
+            HttpStatusCode status = response.getStatusCode();
+            if (!status.is2xxSuccessful()) {
+                log.error("Resend API returned non-success status {} for {}: {}", status, toEmail, response.getBody());
+                throw new EmailSendException(
+                        "We couldn't send the verification email right now. Please try again shortly.",
+                        null);
+            }
+        } catch (RestClientException ex) {
+            log.error("Failed to send email via Resend to {}: {}", toEmail, ex.getMessage(), ex);
             throw new EmailSendException(
-                    "We couldn't send the verification email right now. Please check your "
-                            + "SMTP configuration (spring.mail.username / spring.mail.password) "
-                            + "or try again shortly.",
-                    ex);
-        } catch (MailException ex) {
-            log.error("Failed to send email to {}: {}", toEmail, ex.getMessage(), ex);
-            throw new EmailSendException(
-                    "We couldn't send the verification email right now. Please check your "
-                            + "SMTP configuration (spring.mail.username / spring.mail.password) "
-                            + "or try again shortly.",
+                    "We couldn't send the verification email right now. Please try again shortly.",
                     ex);
         }
     }
