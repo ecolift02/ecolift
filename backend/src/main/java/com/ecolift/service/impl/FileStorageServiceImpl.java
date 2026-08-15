@@ -3,15 +3,16 @@ package com.ecolift.service.impl;
 import com.ecolift.exception.InvalidFileException;
 import com.ecolift.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,11 +23,15 @@ public class FileStorageServiceImpl implements FileStorageService {
             Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_FILE_SIZE_BYTES = 5L * 1024 * 1024; // 5MB
 
-    @Value("${app.upload.dir:uploads/profile-pictures}")
-    private String uploadDir;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${app.base-url:http://localhost:8083}")
-    private String baseUrl;
+    @Value("${application.supabase.url}")
+    private String supabaseUrl; // e.g. https://iysfznmgeyppybgehace.supabase.co
+
+    @Value("${application.supabase.service-role-key}")
+    private String supabaseServiceRoleKey;
+
+    private static final String BUCKET = "profile-pictures";
 
     @Override
     public String storeProfilePicture(MultipartFile file, Long userId) {
@@ -42,24 +47,34 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         try {
-            Path uploadPath = Paths.get(uploadDir);
-            Files.createDirectories(uploadPath);
-
             String originalName = StringUtils.cleanPath(
                     file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
             String extension = originalName.contains(".")
                     ? originalName.substring(originalName.lastIndexOf('.'))
                     : "";
-            // Random filename - never trust/reuse the client-supplied name, and
-            // this avoids collisions between different users' uploads.
             String filename = "user-" + userId + "-" + UUID.randomUUID() + extension;
 
-            Path targetPath = uploadPath.resolve(filename).normalize();
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            String uploadUrl = supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + filename;
 
-            return baseUrl + "/uploads/profile-pictures/" + filename;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(supabaseServiceRoleKey);
+            headers.set("Content-Type", file.getContentType());
+            headers.set("x-upsert", "true");
+
+            HttpEntity<byte[]> entity = new HttpEntity<>(file.getBytes(), headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    uploadUrl, HttpMethod.POST, entity, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new InvalidFileException("Failed to upload image. Please try again.");
+            }
+
+            // Public URL format for a public Supabase Storage bucket
+            return supabaseUrl + "/storage/v1/object/public/" + BUCKET + "/" + filename;
+
         } catch (IOException ex) {
-            throw new InvalidFileException("Failed to save the uploaded file. Please try again.");
+            throw new InvalidFileException("Failed to read the uploaded file. Please try again.");
         }
     }
 }
