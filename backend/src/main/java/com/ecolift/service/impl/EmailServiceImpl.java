@@ -27,16 +27,19 @@ public class EmailServiceImpl implements EmailService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${application.resend.api-key}")
-    private String resendApiKey;
+    @Value("${application.brevo.api-key}")
+    private String brevoApiKey;
 
-    @Value("${application.resend.from-address}")
+    @Value("${application.brevo.from-address}")
     private String fromAddress;
+
+    @Value("${application.brevo.from-name:EcoLift}")
+    private String fromName;
 
     @Value("${application.security.otp.expiration-minutes:10}")
     private int otpExpirationMinutes;
 
-    private static final String RESEND_API_URL = "https://api.resend.com/emails";
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
     @Override
     public void sendRegistrationOtp(String toEmail, String name, String otp) {
@@ -59,27 +62,35 @@ public class EmailServiceImpl implements EmailService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(resendApiKey);
+            headers.set("api-key", brevoApiKey);
+            headers.set("accept", "application/json");
+
+            Map<String, Object> sender = new HashMap<>();
+            sender.put("name", fromName);
+            sender.put("email", fromAddress);
+
+            Map<String, Object> recipient = new HashMap<>();
+            recipient.put("email", toEmail);
 
             Map<String, Object> payload = new HashMap<>();
-            payload.put("from", fromAddress);
-            payload.put("to", List.of(toEmail));
+            payload.put("sender", sender);
+            payload.put("to", List.of(recipient));
             payload.put("subject", subject);
-            payload.put("html", htmlBody);
+            payload.put("htmlContent", htmlBody);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(RESEND_API_URL, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(BREVO_API_URL, entity, String.class);
 
             HttpStatusCode status = response.getStatusCode();
             if (!status.is2xxSuccessful()) {
-                log.error("Resend API returned non-success status {} for {}: {}", status, toEmail, response.getBody());
+                log.error("Brevo API returned non-success status {} for {}: {}", status, toEmail, response.getBody());
                 throw new EmailSendException(
                         "We couldn't send the verification email right now. Please try again shortly.",
                         null);
             }
         } catch (RestClientException ex) {
-            log.error("Failed to send email via Resend to {}: {}", toEmail, ex.getMessage(), ex);
+            log.error("Failed to send email via Brevo to {}: {}", toEmail, ex.getMessage(), ex);
             throw new EmailSendException(
                     "We couldn't send the verification email right now. Please try again shortly.",
                     ex);

@@ -26,7 +26,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${application.supabase.url}")
-    private String supabaseUrl; // e.g. https://iysfznmgeyppybgehace.supabase.co
+    private String supabaseUrl; 
 
     @Value("${application.supabase.service-role-key}")
     private String supabaseServiceRoleKey;
