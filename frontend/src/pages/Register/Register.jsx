@@ -305,6 +305,7 @@ const Register = () => {
               <input
                 type="text"
                 name="name"
+                autoFocus
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Your Name"

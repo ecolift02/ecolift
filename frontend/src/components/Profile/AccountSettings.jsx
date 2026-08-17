@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { changePassword } from "../../api/userApi";
 
-const AccountSettings = ({ profile, onEditClick }) => {
+const AccountSettings = ({ profile, onEditClick, onSwitchMode }) => {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -61,15 +61,17 @@ const AccountSettings = ({ profile, onEditClick }) => {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">
-        Account Settings
-      </h2>
+      <h2 className="text-lg font-semibold text-slate-900">Account Settings</h2>
 
       <div className="mt-4 divide-y divide-slate-100">
-        {/* Edit Profile shortcut - reuses the same edit state PersonalInfoCard triggers */}
+        {/* Edit Profile Action Button */}
         <button
-          onClick={onEditClick}
-          className="flex w-full items-center justify-between py-3 text-left transition hover:bg-slate-50 rounded-lg px-2"
+          type="button"
+          onClick={() => {
+            if (onEditClick) onEditClick();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="flex w-full items-center justify-between py-3 px-2 text-left transition hover:bg-slate-50 rounded-lg"
         >
           <span className="flex items-center gap-3 text-sm font-medium text-slate-700">
             <Pencil className="h-4 w-4 text-emerald-600" />
@@ -78,15 +80,16 @@ const AccountSettings = ({ profile, onEditClick }) => {
           <span className="text-xs text-slate-400">Update your details</span>
         </button>
 
-        {/* Change Password - fully functional */}
-        <div className="py-3">
+        {/* Change Password Action Button & Form */}
+        <div className="py-2">
           <button
+            type="button"
             onClick={() => {
               setShowPasswordForm((prev) => !prev);
               resetPasswordForm();
               setPwSuccess("");
             }}
-            className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left transition hover:bg-slate-50"
+            className="flex w-full items-center justify-between rounded-lg px-2 py-3 text-left transition hover:bg-slate-50"
           >
             <span className="flex items-center gap-3 text-sm font-medium text-slate-700">
               <KeyRound className="h-4 w-4 text-emerald-600" />
@@ -109,6 +112,7 @@ const AccountSettings = ({ profile, onEditClick }) => {
                 <input
                   type="password"
                   required
+                  autoFocus
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-600"
@@ -165,8 +169,12 @@ const AccountSettings = ({ profile, onEditClick }) => {
           )}
         </div>
 
-        {/* Current Mode - informational only; actual switching stays owned by the Navbar */}
-        <div className="flex items-center justify-between py-3 px-2">
+        {/* Current Mode Action Button */}
+        <button
+          type="button"
+          onClick={onSwitchMode}
+          className="flex w-full items-center justify-between py-3 px-2 text-left transition hover:bg-slate-50 rounded-lg"
+        >
           <span className="flex items-center gap-3 text-sm font-medium text-slate-700">
             <ArrowLeftRight className="h-4 w-4 text-emerald-600" />
             Current Mode
@@ -174,9 +182,9 @@ const AccountSettings = ({ profile, onEditClick }) => {
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
             {profile?.currentMode === "DRIVER" ? "Driver" : "Passenger"}
           </span>
-        </div>
+        </button>
 
-        {/* Future features - disabled placeholders, out of scope for this module */}
+        {/* Future Features */}
         <div className="flex items-center justify-between py-3 px-2 opacity-50">
           <span className="flex items-center gap-3 text-sm font-medium text-slate-500">
             <Bell className="h-4 w-4" />

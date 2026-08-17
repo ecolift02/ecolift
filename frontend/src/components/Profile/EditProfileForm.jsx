@@ -1,36 +1,17 @@
 import { useState } from "react";
 import { AlertCircle, Save, X } from "lucide-react";
 
-const splitName = (fullName = "") => {
-  const parts = fullName.trim().split(/\s+/);
-  return {
-    firstName: parts[0] || "",
-    lastName: parts.slice(1).join(" ") || "",
-  };
-};
-
-// The backend's User entity stores a single "name" column (no
-// firstName/lastName split - changing that would ripple into Auth, Ride,
-// and Booking modules that all read user.getName()). Splitting only in the
-// UI, then rejoining on save, gives the requested two-field form without
-// touching that shared column's shape.
 const EditProfileForm = ({ profile, onSave, onCancel, saving, error }) => {
-  const { firstName: initialFirst, lastName: initialLast } = splitName(
-    profile?.name,
-  );
-
-  const [firstName, setFirstName] = useState(initialFirst);
-  const [lastName, setLastName] = useState(initialLast);
+  const [name, setName] = useState(profile?.name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [gender, setGender] = useState(profile?.gender || "");
   const [dateOfBirth, setDateOfBirth] = useState(profile?.dateOfBirth || "");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
     onSave({
-      name,
+      name: name.trim(),
       phone: phone.trim(),
       gender: gender || null,
       dateOfBirth: dateOfBirth || null,
@@ -44,27 +25,17 @@ const EditProfileForm = ({ profile, onSave, onCancel, saving, error }) => {
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div>
+          {/* Full Name Input */}
+          <div className="sm:col-span-2">
             <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              First Name
+              Full Name
             </label>
             <input
               type="text"
               required
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-600"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Last Name
-            </label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-600"
             />
           </div>
