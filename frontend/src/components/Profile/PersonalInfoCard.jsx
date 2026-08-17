@@ -52,8 +52,7 @@ const PersonalInfoCard = ({ profile, onEditClick }) => {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Field label="First Name" value={firstName} />
-        <Field label="Last Name" value={lastName} />
+        <Field label="Full Name" value={firstName} />
         <Field label="Phone Number" value={profile.phone} />
         <Field label="Gender" value={profile.gender} />
         <Field label="Date of Birth" value={formatDob(profile.dateOfBirth)} />
