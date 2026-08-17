@@ -26,7 +26,7 @@ const EditProfileForm = ({ profile, onSave, onCancel, saving, error }) => {
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {/* Full Name Input */}
-          <div className="sm:col-span-2">
+          <div>
             <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Full Name
             </label>
