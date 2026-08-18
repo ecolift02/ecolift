@@ -114,16 +114,16 @@ const PassengerView = () => {
 
     navigate(
       `/search?from=${encodeURIComponent(fromString)}&to=${encodeURIComponent(
-        toString
+        toString,
       )}&date=${encodeURIComponent(date)}&seats=${encodeURIComponent(
-        passengers
-      )}`
+        passengers,
+      )}`,
     );
   };
 
   const selectedPassengerLabel =
-    PASSENGER_OPTIONS.find((opt) => opt.value === searchData.passengers)?.label ||
-    "1 Passenger";
+    PASSENGER_OPTIONS.find((opt) => opt.value === searchData.passengers)
+      ?.label || "1 Passenger";
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-6 select-none">
@@ -151,7 +151,7 @@ const PassengerView = () => {
               placeholder="To"
               value={searchData.to}
               onChange={(value) => handleLocationChange("to", value)}
-              hasError={Boolean(errors.to)}
+              hasError={Boolean(errors?.to)}
             />
             {errors.to && (
               <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
@@ -175,10 +175,10 @@ const PassengerView = () => {
                 min={today}
                 value={searchData.date}
                 onChange={handleChange}
-                className={`relative w-full pl-10 pr-4 py-3 border rounded-xl outline-none transition text-sm text-slate-800 bg-transparent [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                className={`relative w-full pl-10 pr-4 py-3 border rounded-xl  transition text-sm text-slate-800  bg-transparent appearance-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                   errors.date
                     ? "border-red-500 focus:ring-2 focus:ring-red-500"
-                    : "border-slate-200 focus:ring-2 focus:ring-green-600"
+                    : "border-slate-300 hover:border-slate-400 focus:ring-2 focus:ring-green-600"
                 }`}
               />
             </div>
@@ -194,10 +194,10 @@ const PassengerView = () => {
             <button
               type="button"
               onClick={() => setIsPassengerDropdownOpen((prev) => !prev)}
-              className={`w-full pl-10 pr-4 py-3 border rounded-xl text-left flex items-center justify-between text-sm transition outline-none ${
+              className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-green-600 text-left flex items-center justify-between text-sm transition outline-none ${
                 isPassengerDropdownOpen
                   ? "border-green-600 ring-2 ring-green-600/20 bg-green-50/20"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
+                  : "border-slate-300 hover:border-slate-400 bg-white"
               }`}
             >
               <Users
@@ -233,7 +233,10 @@ const PassengerView = () => {
                     >
                       <span>{option.label}</span>
                       {isSelected && (
-                        <Check size={16} className="text-emerald-700 shrink-0" />
+                        <Check
+                          size={16}
+                          className="text-emerald-700 shrink-0"
+                        />
                       )}
                     </button>
                   );
