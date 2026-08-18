@@ -20,21 +20,8 @@ const Field = ({ label, value }) => (
   </div>
 );
 
-// "name" is a single field on the backend (no firstName/lastName columns),
-// so it's split here purely for display. EditProfileForm does the same
-// split for its inputs and rejoins them on save - see that file for why.
-const splitName = (fullName = "") => {
-  const parts = fullName.trim().split(/\s+/);
-  return {
-    firstName: parts[0] || "",
-    lastName: parts.slice(1).join(" ") || "",
-  };
-};
-
 const PersonalInfoCard = ({ profile, onEditClick }) => {
   if (!profile) return null;
-
-  const { firstName, lastName } = splitName(profile.name);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -52,7 +39,7 @@ const PersonalInfoCard = ({ profile, onEditClick }) => {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Field label="Full Name" value={firstName} />
+        <Field label="Full Name" value={profile.name} />
         <Field label="Phone Number" value={profile.phone} />
         <Field label="Gender" value={profile.gender} />
         <Field label="Date of Birth" value={formatDob(profile.dateOfBirth)} />
