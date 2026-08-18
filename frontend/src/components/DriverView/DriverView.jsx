@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Clock,
@@ -10,11 +10,22 @@ import {
   IndianRupee,
   AlertCircle,
   X,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import api from "../../api/axiosConfig";
 import { getRoute } from "../../api/mapService";
 import SearchLocation from "../PassengerView/SearchLocation";
 import ViewMap from "../Map/ViewMap";
+
+const SEAT_OPTIONS = [
+  { value: "1", label: "1 Seat Available" },
+  { value: "2", label: "2 Seats Available" },
+  { value: "3", label: "3 Seats Available" },
+  { value: "4", label: "4 Seats Available" },
+  { value: "5", label: "5 Seats Available" },
+  { value: "6", label: "6 Seats Available" },
+];
 
 const DriverView = () => {
   const navigate = useNavigate();
@@ -37,6 +48,21 @@ const DriverView = () => {
 
   const [showMap, setShowMap] = useState(false);
 
+  // Custom Dropdown State
+  const [isSeatDropdownOpen, setIsSeatDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close custom dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsSeatDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Flow State
   const [step, setStep] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -53,6 +79,22 @@ const DriverView = () => {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
+
+  const handleSeatSelect = (value) => {
+    setRideDetails((prev) => ({
+      ...prev,
+      availableSeats: value,
+    }));
+    if (errors.availableSeats) {
+      setErrors((prev) => ({ ...prev, availableSeats: "" }));
+    }
+    setIsSeatDropdownOpen(false);
+  };
+
+  const selectedSeatLabel =
+    SEAT_OPTIONS.find(
+      (opt) => String(opt.value) === String(rideDetails?.availableSeats),
+    )?.label || "1 Seat Available";
 
   const handleLocationChange = (name, value) => {
     setRideDetails((prev) => ({
@@ -264,10 +306,11 @@ const DriverView = () => {
           <button
             type="button"
             onClick={() => navigate("/driver/rides")}
-            className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+            className="flex items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 p-2 md:px-4 md:py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 shrink-0"
+            aria-label="My Rides"
           >
-            <Car className="h-4 w-4" />
-            My Rides
+            <Car className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">My Rides</span>
           </button>
         </div>
       )}
@@ -298,6 +341,7 @@ const DriverView = () => {
                 <SearchLocation
                   placeholder="Origin"
                   value={rideDetails.source}
+                  hasError={Boolean(errors.source)}
                   onChange={(value) => handleLocationChange("source", value)}
                   onBlur={() => setShowMap(true)}
                 />
@@ -313,6 +357,7 @@ const DriverView = () => {
                 <SearchLocation
                   placeholder="Destination"
                   value={rideDetails.destination}
+                  hasError={Boolean(errors.destination)}
                   onChange={(value) =>
                     handleLocationChange("destination", value)
                   }
@@ -329,19 +374,20 @@ const DriverView = () => {
               <div className="flex flex-col">
                 <div className="relative">
                   <IndianRupee
-                    className={`absolute left-3 top-3 ${errors.pricePerSeat ? "text-red-500" : "text-gray-500"}`}
+                    className={`absolute left-3 top-4 ${errors.pricePerSeat ? "text-red-500" : "text-gray-400"}`}
                     size={20}
                   />
                   <input
                     type="number"
+                    min="10"
                     name="pricePerSeat"
                     value={rideDetails.pricePerSeat}
                     onChange={handleChange}
                     placeholder="Price per Seat (Min ₹10)"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg outline-none transition ${
                       errors.pricePerSeat
                         ? "border-red-500 focus:ring-red-500"
-                        : ""
+                        : "border-slate-300 hover:border-slate-400 focus:ring-2 focus:ring-green-600"
                     }`}
                   />
                 </div>
@@ -356,7 +402,9 @@ const DriverView = () => {
               <div className="flex flex-col">
                 <div className="relative">
                   <Clock
-                    className={`absolute left-3 top-3 ${errors.departureTime ? "text-red-500" : "text-gray-500"}`}
+                    className={`absolute left-3 top-3.5 z-10 pointer-events-none ${
+                      errors.departureTime ? "text-red-500" : "text-slate-400"
+                    }`}
                     size={20}
                   />
                   <input
@@ -365,15 +413,15 @@ const DriverView = () => {
                     value={rideDetails.departureTime}
                     onChange={handleChange}
                     min={minDateTime}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    className={`relative w-full pl-10 pr-4 py-3 border rounded-xl outline-none transition text-sm text-slate-800 bg-transparent appearance-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                       errors.departureTime
-                        ? "border-red-500 focus:ring-red-500"
-                        : ""
+                        ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                        : "border-slate-300 hover:border-slate-400 focus:ring-2 focus:ring-green-600 focus:border-transparent"
                     }`}
                   />
                 </div>
                 {errors.departureTime && (
-                  <span className="text-red-500 text-xs mt-1 ml-1">
+                  <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
                     {errors.departureTime}
                   </span>
                 )}
@@ -383,7 +431,9 @@ const DriverView = () => {
               <div className="flex flex-col">
                 <div className="relative">
                   <Clock
-                    className={`absolute left-3 top-3 ${errors.arrivalTime ? "text-red-500" : "text-gray-500"}`}
+                    className={`absolute left-3 top-3.5 z-10 pointer-events-none ${
+                      errors.arrivalTime ? "text-red-500" : "text-slate-400"
+                    }`}
                     size={20}
                   />
                   <input
@@ -392,40 +442,85 @@ const DriverView = () => {
                     value={rideDetails.arrivalTime}
                     onChange={handleChange}
                     min={rideDetails.departureTime || minDateTime}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none transition ${
+                    className={`relative w-full pl-10 pr-4 py-3 border rounded-xl outline-none transition text-sm text-slate-800 bg-transparent appearance-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                       errors.arrivalTime
-                        ? "border-red-500 focus:ring-red-500"
-                        : ""
+                        ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                        : "border-slate-300 hover:border-slate-400 focus:ring-2 focus:ring-green-600 focus:border-transparent"
                     }`}
                   />
                 </div>
                 {errors.arrivalTime && (
-                  <span className="text-red-500 text-xs mt-1 ml-1">
+                  <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
                     {errors.arrivalTime}
                   </span>
                 )}
               </div>
 
-              {/* Available Seats */}
-              <div className="flex flex-col">
-                <div className="relative">
+              {/* Available Seats (Custom Styled Dropdown) */}
+              <div className="flex flex-col relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsSeatDropdownOpen((prev) => !prev)}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg text-left flex items-center justify-between text-sm transition outline-none ${
+                    errors.availableSeats
+                      ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                      : isSeatDropdownOpen
+                        ? "border-green-600 ring-2 ring-green-600/20 bg-green-50/20"
+                        : "border-slate-300 hover:border-slate-400 bg-white"
+                  }`}
+                >
                   <Users
-                    className="absolute left-3 top-3 text-gray-500"
+                    className={`absolute left-3 top-3.5 z-10 pointer-events-none ${
+                      errors.availableSeats ? "text-red-500" : "text-gray-400"
+                    }`}
                     size={20}
                   />
-                  <select
-                    name="availableSeats"
-                    value={rideDetails.availableSeats}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none cursor-pointer"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? "Seat Available" : "Seats Available"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <span className="font-medium text-slate-800">
+                    {selectedSeatLabel}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      isSeatDropdownOpen ? "rotate-180 text-green-700" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Styled Dropdown Menu */}
+                {isSeatDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                    {SEAT_OPTIONS.map((option) => {
+                      const isSelected =
+                        String(rideDetails?.availableSeats) ===
+                        String(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleSeatSelect(option.value)}
+                          className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-colors ${
+                            isSelected
+                              ? "bg-emerald-50 text-emerald-800 font-semibold"
+                              : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{option.label}</span>
+                          {isSelected && (
+                            <Check
+                              size={16}
+                              className="text-emerald-700 shrink-0"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {errors.availableSeats && (
+                  <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
+                    {errors.availableSeats}
+                  </span>
+                )}
               </div>
             </div>
 

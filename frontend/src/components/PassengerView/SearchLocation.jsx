@@ -7,6 +7,7 @@ export default function SearchLocation({
   value,
   onChange,
   onBlur,
+  hasError,
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -93,7 +94,12 @@ export default function SearchLocation({
   return (
     // 3. Attach the ref to the outermost div
     <div className="relative" ref={wrapperRef}>
-      <MapPin className="absolute left-3 top-3 text-gray-500" size={20} />
+      <MapPin
+        className={`absolute left-3 top-3.5 z-10 pointer-events-none ${
+          hasError ? "text-red-500" : "text-slate-400"
+        }`}
+        size={20}
+      />
 
       <input
         type="text"
@@ -102,16 +108,20 @@ export default function SearchLocation({
         onBlur={onBlur}
         autoComplete="off"
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
+        className={`relative w-full pl-10 pr-4 py-3 border rounded-xl outline-none transition text-sm text-slate-800 bg-transparent focus:ring-2 focus:ring-green-600 focus:border-transparent ${
+          hasError
+            ? "border-red-500"
+            : "border-slate-300 hover:border-slate-400"
+        }`}
       />
 
       {results.length > 0 && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full min-w-[16rem] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-56 min-w-[16rem] overflow-y-auto rounded-xl border border-slate-100 bg-white shadow-xl py-1">
           {results.map((item) => (
             <button
               key={item.place_id}
               type="button"
-              className="block w-full cursor-pointer border-b border-gray-100 px-4 py-3 text-left text-sm text-gray-700 transition hover:bg-green-50 last:border-b-0 truncate"
+              className="block w-full cursor-pointer border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-green-50 last:border-b-0 truncate"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(item)}
             >
