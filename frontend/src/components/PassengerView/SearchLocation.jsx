@@ -102,7 +102,7 @@ export default function SearchLocation({
         onBlur={onBlur}
         autoComplete="off"
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-600 outline-none"
+        className="w-full pl-10 pr-4 py-3 border rounded-lg autofocus focus:ring-green-600 outline-none"
       />
 
       {results.length > 0 && (
