@@ -136,9 +136,10 @@ const PassengerView = () => {
               value={searchData.from}
               onChange={(value) => handleLocationChange("from", value)}
               onBlur={() => setShowMap(true)}
+              hasError={Boolean(errors.from)}
             />
             {errors.from && (
-              <span className="text-red-500 text-xs mt-1 ml-1">
+              <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
                 {errors.from}
               </span>
             )}
@@ -150,9 +151,10 @@ const PassengerView = () => {
               placeholder="To"
               value={searchData.to}
               onChange={(value) => handleLocationChange("to", value)}
+              hasError={Boolean(errors.to)}
             />
             {errors.to && (
-              <span className="text-red-500 text-xs mt-1 ml-1">
+              <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
                 {errors.to}
               </span>
             )}
@@ -162,7 +164,7 @@ const PassengerView = () => {
           <div className="flex flex-col">
             <div className="relative">
               <CalendarDays
-                className={`absolute left-3 top-3.5 z-10 ${
+                className={`absolute left-3 top-3.5 z-10 pointer-events-none transition-colors ${
                   errors.date ? "text-red-500" : "text-slate-400"
                 }`}
                 size={20}
@@ -173,14 +175,15 @@ const PassengerView = () => {
                 min={today}
                 value={searchData.date}
                 onChange={handleChange}
-                // The pseudo-classes below hide the default browser calendar icon but keep it completely clickable across the entire input
-                className={`relative w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-600 outline-none transition text-sm text-slate-800 bg-transparent [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
-                  errors.date ? "border-red-500 focus:ring-red-500" : "border-slate-200"
+                className={`relative w-full pl-10 pr-4 py-3 border rounded-xl outline-none transition text-sm text-slate-800 bg-transparent [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.date
+                    ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500"
+                    : "border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600"
                 }`}
               />
             </div>
             {errors.date && (
-              <span className="text-red-500 text-xs mt-1 ml-1">
+              <span className="text-red-500 text-xs mt-1 ml-1 font-medium">
                 {errors.date}
               </span>
             )}
@@ -193,7 +196,7 @@ const PassengerView = () => {
               onClick={() => setIsPassengerDropdownOpen((prev) => !prev)}
               className={`w-full pl-10 pr-4 py-3 border rounded-xl text-left flex items-center justify-between text-sm transition outline-none ${
                 isPassengerDropdownOpen
-                  ? "border-green-600 ring-2 ring-green-600/20 bg-green-50/20"
+                  ? "border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/20"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
@@ -207,7 +210,7 @@ const PassengerView = () => {
               <ChevronDown
                 size={18}
                 className={`text-slate-400 transition-transform duration-200 ${
-                  isPassengerDropdownOpen ? "rotate-180 text-green-700" : ""
+                  isPassengerDropdownOpen ? "rotate-180 text-emerald-700" : ""
                 }`}
               />
             </button>
@@ -243,13 +246,13 @@ const PassengerView = () => {
           <div className="flex flex-col justify-start">
             <button
               type="submit"
-              className="bg-green-700 hover:bg-green-800 text-white font-medium rounded-xl flex items-center justify-center gap-2 px-6 py-3 transition duration-200 shadow-sm max-h-[48px]"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-medium rounded-xl flex items-center justify-center gap-2 px-6 py-3 transition duration-200 shadow-sm max-h-[48px]"
             >
               <Search size={20} />
               Search
             </button>
             {errors.polyline && (
-              <span className="text-red-500 text-xs mt-2 ml-1">
+              <span className="text-red-500 text-xs mt-2 ml-1 font-medium">
                 {errors.polyline}
               </span>
             )}
