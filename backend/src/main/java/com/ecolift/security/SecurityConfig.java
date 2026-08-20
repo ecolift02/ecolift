@@ -1,5 +1,6 @@
 package com.ecolift.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,9 @@ import lombok.RequiredArgsConstructor;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    @Value("${import.env.APP_BASE_URL}")
+    private String appBaseUrl;
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -59,7 +63,7 @@ public class SecurityConfig {
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of("https://ecolift-2jxv.onrender.com","http://localhost:5173"));
+        configuration.setAllowedOrigins(java.util.List.of(appBaseUrl, "http://localhost:5173"));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setAllowCredentials(true);
