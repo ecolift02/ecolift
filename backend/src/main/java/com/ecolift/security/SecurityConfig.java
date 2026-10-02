@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    @Value("${import.env.APP_BASE_URL}")
+    @Value("${APP_BASE_URL}")
     private String appBaseUrl;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
