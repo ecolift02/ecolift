@@ -10,8 +10,9 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    @Value("${import.env.APP_BASE_URL}")
-    private final String appBaseUrl;
+    
+	@Value("${APP_BASE_URL}")
+    private String appBaseUrl; 
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
     @Override
