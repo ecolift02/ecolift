@@ -7,20 +7,27 @@ import com.ecolift.dto.request.ResendOtpRequest;
 import com.ecolift.dto.request.ResetPasswordRequest;
 import com.ecolift.dto.request.VerifyOtpRequest;
 import com.ecolift.dto.response.AuthResponse;
+import com.ecolift.dto.response.ErrorResponse;
 import com.ecolift.dto.response.MessageResponse;
 import com.ecolift.entity.OtpPurpose;
+import com.ecolift.exception.EmailNotVerifiedException;
 import com.ecolift.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:5173", "https://ecolift-2jxv.onrender.com"})
-    public class AuthController {
+public class AuthController {
 
     private final AuthService authService;
 
@@ -58,9 +65,32 @@ import org.springframework.web.bind.annotation.*;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> authenticate(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = authService.authenticate(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> authenticate(@Valid @RequestBody AuthRequest request) {
+        try{
+            AuthResponse response = authService.authenticate(request);
+            return ResponseEntity.ok(response);
+        }catch(Exception e){
+            if(e instanceof EmailNotVerifiedException){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ErrorResponse.builder()
+                                .message(e.getMessage())
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }else if(e instanceof BadCredentialsException || e instanceof InternalAuthenticationServiceException){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ErrorResponse.builder()
+                                .message("Invalid email or password.")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }else{
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(ErrorResponse.builder()
+                                .message("An unexpected error occurred. Please try again later.")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }
+        }
+       
     }
 
     /** Step 1 of forgot-password: emails a reset OTP if the account exists. */

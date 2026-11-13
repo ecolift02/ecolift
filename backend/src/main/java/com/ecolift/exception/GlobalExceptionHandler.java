@@ -7,6 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -281,6 +284,29 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles authentication failures (wrong email or password).
+     */
+    @ExceptionHandler({
+            BadCredentialsException.class,
+            InternalAuthenticationServiceException.class,
+            AuthenticationException.class
+    })
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("Unauthorized")
+                .message("Invalid username or password.")
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
      * Thrown by EmailServiceImpl when SMTP send fails (bad credentials, network,
      * etc). Surfaced separately from the generic handler so registration/OTP
      * failures are debuggable instead of showing a vague "contact support".
@@ -309,11 +335,28 @@ public class GlobalExceptionHandler {
     ) {
         log.error("Unhandled exception on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
+        // Defensive check: if the exception or any cause in the chain is an AuthenticationException or BadCredentials
+        Throwable cause = ex;
+        while (cause != null) {
+            if (cause instanceof AuthenticationException
+                    || (cause.getMessage() != null && cause.getMessage().toLowerCase().contains("bad credentials"))) {
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .error("Unauthorized")
+                        .message("Invalid username or password.")
+                        .path(request.getRequestURI())
+                        .build();
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+            }
+            cause = cause.getCause();
+        }
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
-                .message("An unexpected error occurred. Please contact support.")
+                .message("An unexpected error occurred.")
                 .path(request.getRequestURI())
                 .build();
 

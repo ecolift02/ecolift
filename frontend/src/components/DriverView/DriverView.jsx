@@ -69,6 +69,7 @@ const DriverView = () => {
   const [activeVehicles, setActiveVehicles] = useState([]);
   const [vehicleLoading, setVehicleLoading] = useState(true);
   const [vehicleError, setVehicleError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -239,7 +240,8 @@ const DriverView = () => {
   const handleFinalPublish = async (e) => {
     e.preventDefault();
 
-    if (!selectedVehicle) return;
+    if (!selectedVehicle || isSubmitting) return;
+    setIsSubmitting(true);
     setError(null);
 
     const sourceString =
@@ -294,6 +296,9 @@ const DriverView = () => {
       .catch((err) => {
         const msg = err?.response?.data?.message || "Failed to publish ride.";
         setError(msg);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
   };
 
@@ -639,15 +644,15 @@ const DriverView = () => {
           <div className="flex justify-end pt-4">
             <button
               onClick={handleFinalPublish}
-              disabled={!selectedVehicle}
+              disabled={!selectedVehicle || isSubmitting}
               className={`flex items-center gap-2 rounded-lg px-8 py-3 text-sm font-semibold text-white shadow-md transition ${
-                selectedVehicle
+                selectedVehicle && !isSubmitting
                   ? "bg-green-700 hover:bg-green-800 active:scale-[0.98]"
                   : "bg-slate-300 cursor-not-allowed"
               }`}
             >
-              <Send className="h-4 w-4" />
-              <span>Confirm & Publish</span>
+              <Send className={`h-4 w-4 ${isSubmitting ? "animate-spin" : ""}`} />
+              <span>{isSubmitting ? "Publishing..." : "Confirm & Publish"}</span>
             </button>
           </div>
         </div>
