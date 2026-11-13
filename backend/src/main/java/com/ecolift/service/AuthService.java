@@ -16,7 +16,9 @@ import com.ecolift.repository.UserRepository;
 import com.ecolift.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,17 +107,23 @@ public class AuthService {
     }
 
     public AuthResponse authenticate(AuthRequest request) {
+        String normalizedEmail = request.getEmail() != null ? request.getEmail().trim() : "";
+
         // 1. Authenticate credentials via Spring Security
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            normalizedEmail,
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException ex) {
+            throw new BadCredentialsException("Invalid username or password.", ex);
+        }
 
         // 2. Fetch user and generate JWT
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new EmailNotFoundException("We couldn't find an account for that email."));
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password."));
 
         // 2b. Block login until the email has been verified via OTP.
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {

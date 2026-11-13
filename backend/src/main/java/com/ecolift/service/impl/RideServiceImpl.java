@@ -134,6 +134,21 @@ public class RideServiceImpl implements RideService {
             throw new IllegalArgumentException("Price per seat must be greater than zero.");
         }
 
+        // Validate vehicle and driver schedule conflicts
+        LocalDateTime departure = ride.getDepartureTime();
+        LocalDateTime arrival = ride.getEstimateArrivalTime() != null
+                ? ride.getEstimateArrivalTime()
+                : (departure != null ? departure.plusHours(2) : null);
+
+        if (departure != null && arrival != null) {
+            if (rideRepository.existsOverlappingRideForVehicle(vehicleId, departure, arrival)) {
+                throw new InvalidRideStateException("This vehicle is already scheduled for another ride during this time window.");
+            }
+            if (rideRepository.existsOverlappingRideForDriver(driverId, departure, arrival)) {
+                throw new InvalidRideStateException("You already have another ride scheduled during this time window.");
+            }
+        }
+
         ride.setDriver(driver);
         ride.setVehicle(vehicle);
         ride.setRoute(route);
@@ -176,6 +191,18 @@ public class RideServiceImpl implements RideService {
             if (ride.getVehicle() != null && ride.getVehicle().getCapacity() != null
                     && updatedData.getAvailableSeats() > ride.getVehicle().getCapacity()) {
                 throw new IllegalArgumentException("Available seats cannot exceed vehicle capacity.");
+            }
+        }
+
+        LocalDateTime newDeparture = updatedData.getDepartureTime() != null ? updatedData.getDepartureTime() : ride.getDepartureTime();
+        LocalDateTime newArrival = updatedData.getEstimateArrivalTime() != null ? updatedData.getEstimateArrivalTime() : ride.getEstimateArrivalTime();
+        if (newArrival == null && newDeparture != null) {
+            newArrival = newDeparture.plusHours(2);
+        }
+
+        if (ride.getVehicle() != null && newDeparture != null && newArrival != null) {
+            if (rideRepository.existsOverlappingRideForVehicleExcludingRide(ride.getVehicle().getId(), newDeparture, newArrival, rideId)) {
+                throw new InvalidRideStateException("This vehicle is already scheduled for another ride during this time window.");
             }
         }
 

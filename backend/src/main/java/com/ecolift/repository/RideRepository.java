@@ -33,4 +33,39 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
             @Param("departureTime") LocalDateTime departureTime,
             @Param("requiredSeats") int requiredSeats
     );
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Ride r " +
+            "WHERE r.vehicle.id = :vehicleId " +
+            "AND r.isDeleted = false " +
+            "AND (r.departureTime = :newDeparture " +
+            "     OR (r.departureTime < :newArrival AND COALESCE(r.estimateArrivalTime, r.departureTime) > :newDeparture))")
+    boolean existsOverlappingRideForVehicle(
+            @Param("vehicleId") Long vehicleId,
+            @Param("newDeparture") LocalDateTime newDeparture,
+            @Param("newArrival") LocalDateTime newArrival
+    );
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Ride r " +
+            "WHERE r.vehicle.id = :vehicleId " +
+            "AND r.id != :excludeRideId " +
+            "AND r.isDeleted = false " +
+            "AND (r.departureTime = :newDeparture " +
+            "     OR (r.departureTime < :newArrival AND COALESCE(r.estimateArrivalTime, r.departureTime) > :newDeparture))")
+    boolean existsOverlappingRideForVehicleExcludingRide(
+            @Param("vehicleId") Long vehicleId,
+            @Param("newDeparture") LocalDateTime newDeparture,
+            @Param("newArrival") LocalDateTime newArrival,
+            @Param("excludeRideId") Long excludeRideId
+    );
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Ride r " +
+            "WHERE r.driver.id = :driverId " +
+            "AND r.isDeleted = false " +
+            "AND (r.departureTime = :newDeparture " +
+            "     OR (r.departureTime < :newArrival AND COALESCE(r.estimateArrivalTime, r.departureTime) > :newDeparture))")
+    boolean existsOverlappingRideForDriver(
+            @Param("driverId") Long driverId,
+            @Param("newDeparture") LocalDateTime newDeparture,
+            @Param("newArrival") LocalDateTime newArrival
+    );
 }

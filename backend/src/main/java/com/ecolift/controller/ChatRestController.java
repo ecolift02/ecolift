@@ -15,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "https://ecolift-2jxv.onrender.com"})
 public class ChatRestController {
 
     private final ChatService chatService;

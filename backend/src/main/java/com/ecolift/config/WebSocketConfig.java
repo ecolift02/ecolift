@@ -10,8 +10,13 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    @Value("${import.env.APP_BASE_URL}")
-    private final String appBaseUrl;
+    
+    // 1. Removed 'final' so Spring uses @Value field injection instead of constructor injection.
+    // 2. Updated the property key to match your application.properties setup.
+	@Value("${APP_BASE_URL}")
+    private String appBaseUrl; 
+
+    // 3. Kept 'final' so Lombok generates a constructor specifically for this Bean.
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
     @Override
